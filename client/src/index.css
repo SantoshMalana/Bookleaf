@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/fraunces';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+
+  --color-paper: #faf8f3;
+  --color-card: #ffffff;
+  --color-ink: #1c2420;
+  --color-muted: #5f6b64;
+  --color-faint: #8a948d;
+  --color-line: #e7e3d9;
+  --color-line-strong: #d4cfc2;
+
+  --color-leaf-50: #eef7f1;
+  --color-leaf-100: #d9ede0;
+  --color-leaf-200: #b6dcc4;
+  --color-leaf-300: #8cc4a2;
+  --color-leaf-500: #2f8460;
+  --color-leaf-600: #1f6b4f;
+  --color-leaf-700: #17533e;
+  --color-leaf-800: #123f30;
+  --color-leaf-900: #0d2e23;
+
+  --color-amber-soft: #fff6e0;
+  --color-amber-line: #f0d9a0;
+  --color-amber-ink: #8a5a00;
+  --color-clay-soft: #fdeeea;
+  --color-clay-line: #f2c4b9;
+  --color-clay: #b5412f;
+  --color-sky-soft: #eaf3fd;
+  --color-sky-ink: #1f5fa8;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-leaf-500;
+  }
+  ::selection {
+    background: var(--color-leaf-200);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, #efebe1 25%, #f7f4ec 37%, #efebe1 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 8px;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-in {
+  animation: pop-in 0.18s ease-out;
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(47, 132, 96, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(47, 132, 96, 0);
+  }
+}
+.live-dot {
+  animation: pulse-ring 2s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .pop-in,
+  .live-dot {
+    animation: none;
+  }
+}
