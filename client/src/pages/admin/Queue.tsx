@@ -62,29 +62,31 @@ export default function Queue() {
       </div>
 
       <Card className="mt-5">
-        <div className="flex flex-wrap items-end gap-3 border-b border-line p-4">
-          <div className="relative min-w-[200px] flex-1">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
-            <input className={cx(inputCls, 'pl-9')} placeholder="Search subject, ticket # or author" value={get('q')} onChange={(e) => set({ q: e.target.value })} aria-label="Search tickets" />
+        <div className="space-y-3 border-b border-line p-4">
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-faint" />
+            <input className={cx(inputCls, 'pl-10')} placeholder="Search subject, ticket # or author" value={get('q')} onChange={(e) => set({ q: e.target.value })} aria-label="Search tickets" />
           </div>
-          <Select label="Status" value={get('status')} onChange={(v) => set({ status: v })} options={[['Open,In Progress', 'Active (open + in progress)'], ...STATUSES.map((x) => [x, x] as [string, string])]} />
-          <Select label="Category" value={get('category')} onChange={(v) => set({ category: v })} options={CATEGORIES.map((x) => [x, x])} />
-          <Select label="Priority" value={get('priority')} onChange={(v) => set({ priority: v })} options={[['Critical,High', 'Critical + High'], ...PRIORITIES.map((x) => [x, x] as [string, string])]} />
-          <Select label="Assignee" value={get('assignee')} onChange={(v) => set({ assignee: v })} options={[['me', 'Me'], ['unassigned', 'Unassigned']]} />
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted">From</span>
-            <input type="date" className={cx(inputCls, 'w-[150px]')} value={get('from')} onChange={(e) => set({ from: e.target.value })} />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted">To</span>
-            <input type="date" className={cx(inputCls, 'w-[150px]')} value={get('to')} onChange={(e) => set({ to: e.target.value })} />
-          </label>
-          <Select label="Sort" value={get('sort')} onChange={(v) => set({ sort: v })} blank="Urgency (default)" options={[['oldest', 'Oldest first'], ['newest', 'Newest first'], ['activity', 'Recent activity']]} />
-          {hasFilters && (
-            <button onClick={() => setSp(new URLSearchParams(), { replace: true })} className="mb-1 inline-flex items-center gap-1 text-sm font-medium text-leaf-700 hover:underline">
-              <X className="size-3.5" /> Clear
-            </button>
-          )}
+          <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-4 xl:grid-cols-8">
+            <Select label="Status" value={get('status')} onChange={(v) => set({ status: v })} options={[['Open,In Progress', 'Active'], ...STATUSES.map((x) => [x, x] as [string, string])]} />
+            <Select label="Category" value={get('category')} onChange={(v) => set({ category: v })} options={CATEGORIES.map((x) => [x, x])} />
+            <Select label="Priority" value={get('priority')} onChange={(v) => set({ priority: v })} options={[['Critical,High', 'Critical + High'], ...PRIORITIES.map((x) => [x, x] as [string, string])]} />
+            <Select label="Assignee" value={get('assignee')} onChange={(v) => set({ assignee: v })} options={[['me', 'Me'], ['unassigned', 'Unassigned']]} />
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted">From</span>
+              <input type="date" className={cx(inputCls, 'w-full')} value={get('from')} onChange={(e) => set({ from: e.target.value })} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted">To</span>
+              <input type="date" className={cx(inputCls, 'w-full')} value={get('to')} onChange={(e) => set({ to: e.target.value })} />
+            </label>
+            <Select label="Sort" value={get('sort')} onChange={(v) => set({ sort: v })} blank="Urgency" options={[['oldest', 'Oldest first'], ['newest', 'Newest first'], ['activity', 'Recent activity']]} />
+            {hasFilters ? (
+              <button onClick={() => setSp(new URLSearchParams(), { replace: true })} className="mb-2.5 inline-flex items-center gap-1 text-sm font-bold text-brand-700 hover:underline">
+                <X className="size-3.5" /> Clear filters
+              </button>
+            ) : <span />}
+          </div>
         </div>
 
         {list.isError ? (
@@ -134,7 +136,7 @@ function TicketRow({ t }: { t: AdminTicket }) {
       <td className="p-0"><div className={cx('h-full min-h-[64px] w-1.5', t.isActive ? priorityBar[t.priority] : 'bg-transparent')} /></td>
       <td className="max-w-[340px] px-4 py-3">
         <Link to={`/admin/tickets/${t.id}`} className="block after:absolute after:inset-0">
-          <span className="block truncate font-medium text-ink group-hover:text-leaf-700">{t.subject}</span>
+          <span className="block truncate font-medium text-ink group-hover:text-brand-700">{t.subject}</span>
           <span className="block truncate text-xs text-muted">{t.ticketId} · {t.author.name} · {t.book?.title ?? 'General / Account'}</span>
         </Link>
       </td>
@@ -165,8 +167,8 @@ function TicketRow({ t }: { t: AdminTicket }) {
 function Select({ label, value, onChange, options, blank = 'All' }: { label: string; value: string; onChange: (v: string) => void; options: Array<[string, string]>; blank?: string }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
-      <select className={cx(inputCls, 'w-auto min-w-[130px] pr-8')} value={value} onChange={(e) => onChange(e.target.value)}>
+      <span className="mb-1 block text-xs font-bold text-muted">{label}</span>
+      <select className={cx(inputCls, 'w-full pr-8')} value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">{blank}</option>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>

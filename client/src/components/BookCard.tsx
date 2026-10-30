@@ -19,7 +19,7 @@ export function ProductionTracker({ production }: { production: Book['production
           <li
             key={s.name}
             title={`${s.name}${s.state === 'done' ? ' (done)' : s.state === 'current' ? ' (current)' : ''}`}
-            className={cx('h-2 flex-1 rounded-full', s.state === 'done' && 'bg-leaf-600', s.state === 'current' && 'bg-leaf-400 ring-2 ring-leaf-200', s.state === 'upcoming' && 'bg-line')}
+            className={cx('h-2 flex-1 rounded-full', s.state === 'done' && 'bg-brand-500', s.state === 'current' && 'bg-brand-300 ring-2 ring-brand-100', s.state === 'upcoming' && 'bg-line')}
           />
         ))}
       </ol>
@@ -39,7 +39,7 @@ function RoyaltyBar({ paid, pending }: { paid: number; pending: number }) {
   if (total <= 0) return null;
   return (
     <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-line" role="img" aria-label={`${inr(paid)} paid, ${inr(pending)} pending`}>
-      <div className="bg-leaf-600" style={{ width: `${(paid / total) * 100}%` }} />
+      <div className="bg-ok-500" style={{ width: `${(paid / total) * 100}%` }} />
       <div className="bg-amber-ink/50" style={{ width: `${(pending / total) * 100}%` }} />
     </div>
   );
@@ -61,15 +61,15 @@ export function BookCard({ book }: { book: Book }) {
   const p = book.payout;
 
   return (
-    <article className="overflow-hidden rounded-xl border border-line bg-card shadow-[0_1px_2px_rgba(28,36,32,0.04)]">
+    <article className="overflow-hidden rounded-2xl border border-line bg-card shadow-[0_2px_12px_-4px_rgba(47,46,46,0.08)]">
       <div className="flex flex-wrap items-start justify-between gap-3 p-5 pb-4">
         <div className="min-w-0">
-          <h3 className="font-serif text-xl leading-snug font-semibold">{book.title}</h3>
+          <h3 className="text-xl leading-snug font-extrabold">{book.title}</h3>
           <p className="mt-1 text-sm text-muted">
             {book.genre} · <span className="tabular-nums">{book.isbn || 'ISBN not assigned'}</span>
           </p>
         </div>
-        <Badge tone={live ? 'leaf' : 'amber'}>
+        <Badge tone={live ? 'ok' : 'amber'}>
           {live ? <CircleCheck className="size-3" /> : <Printer className="size-3" />}
           {book.status}
         </Badge>
@@ -107,7 +107,7 @@ export function BookCard({ book }: { book: Book }) {
 
       <div className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
         <span className="text-muted">{book.printPartner ? `Printed by ${book.printPartner}` : live ? '' : 'Not yet sent to print'}</span>
-        <Link to={`/tickets/new?bookId=${book.id}`} className="inline-flex items-center gap-1.5 font-medium text-leaf-700 hover:text-leaf-800 hover:underline">
+        <Link to={`/tickets/new?bookId=${book.id}`} className="inline-flex items-center gap-1.5 font-medium text-brand-700 hover:text-brand-800 hover:underline">
           <MessageSquarePlus className="size-4" /> Ask about this book
         </Link>
       </div>
@@ -119,7 +119,7 @@ function Money({ label, value, tone, sub }: { label: string; value: number; tone
   return (
     <div>
       <p className="text-xs text-muted">{label}</p>
-      <p className={cx('mt-0.5 font-serif text-xl font-semibold tabular-nums', tone === 'good' && 'text-leaf-700', tone === 'warn' && 'text-amber-ink')}>{inr(value)}</p>
+      <p className={cx('mt-0.5 text-xl font-extrabold tabular-nums', tone === 'good' && 'text-ok-700', tone === 'warn' && 'text-amber-ink')}>{inr(value)}</p>
       {sub && <p className="text-xs text-faint">{sub}</p>}
     </div>
   );
@@ -135,7 +135,7 @@ function PayoutNote({ payout }: { payout: Book['payout'] }) {
       : prettyDates(payout.summary);
   if (payout.state === 'not_applicable' || payout.state === 'settled') {
     return (
-      <p className="mt-3 flex items-start gap-2 text-sm text-leaf-700">
+      <p className="mt-3 flex items-start gap-2 text-sm text-ok-700">
         <CircleCheck className="mt-0.5 size-4 shrink-0" />
         {summary}
       </p>

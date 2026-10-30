@@ -24,7 +24,7 @@ function NotFound() {
   return (
     <div className="grid min-h-[60vh] place-items-center text-center">
       <div>
-        <p className="font-serif text-6xl font-semibold text-leaf-600">404</p>
+        <p className="font-serif text-6xl font-semibold text-brand-600">404</p>
         <h1 className="mt-2 text-2xl font-semibold">This page doesn&apos;t exist</h1>
         <p className="mt-1 text-muted">The link may be broken or the page may have moved.</p>
         <Link to="/" className="mt-5 inline-block">

@@ -17,7 +17,7 @@ export default function Books() {
     <>
       <PageHeader title="My Books" subtitle="Publication details, sales and royalty status for each of your titles." />
       {q.isLoading ? (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -28,13 +28,13 @@ export default function Books() {
           {live.length > 0 && (
             <section>
               <h2 className="mb-3 font-sans text-sm font-semibold tracking-wide text-muted uppercase">Published &amp; live · {live.length}</h2>
-              <div className="grid gap-5 lg:grid-cols-2">{live.map((b) => <BookCard key={b.id} book={b} />)}</div>
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">{live.map((b) => <BookCard key={b.id} book={b} />)}</div>
             </section>
           )}
           {inProduction.length > 0 && (
             <section>
               <h2 className="mb-3 font-sans text-sm font-semibold tracking-wide text-muted uppercase">In production · {inProduction.length}</h2>
-              <div className="grid gap-5 lg:grid-cols-2">{inProduction.map((b) => <BookCard key={b.id} book={b} />)}</div>
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">{inProduction.map((b) => <BookCard key={b.id} book={b} />)}</div>
             </section>
           )}
         </div>

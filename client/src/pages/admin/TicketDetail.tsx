@@ -166,7 +166,7 @@ export default function AdminTicketDetail() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_340px]">
         {/* ───────── conversation + composer ───────── */}
         <div className="min-w-0 space-y-5">
           <Card className="p-5">
@@ -279,7 +279,7 @@ export default function AdminTicketDetail() {
             {mine.length > 0 && (
               <ul className="divide-y divide-line border-t border-line text-sm">
                 {mine.map((b) => (
-                  <li key={b.id} className={cx('px-5 py-2.5', b.id === t.book?.id && 'bg-leaf-50')}>
+                  <li key={b.id} className={cx('px-5 py-2.5', b.id === t.book?.id && 'bg-brand-50')}>
                     <p className="font-medium">{b.title}</p>
                     <p className="text-xs text-muted">{b.status} · pending {inr(b.royaltyPending)} · paid {inr(b.royaltyPaid)}</p>
                   </li>
@@ -310,7 +310,7 @@ export default function AdminTicketDetail() {
 
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button role="tab" aria-selected={active} onClick={onClick} className={cx('-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors', active ? 'border-leaf-600 text-leaf-700' : 'border-transparent text-muted hover:text-ink')}>
+    <button role="tab" aria-selected={active} onClick={onClick} className={cx('-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors', active ? 'border-brand-600 text-brand-700' : 'border-transparent text-muted hover:text-ink')}>
       {children}
     </button>
   );
@@ -320,7 +320,7 @@ function DraftPanel({ draft, loading, error, wanted, onRegenerate, onReset }: { 
   if (!wanted && !draft) return null;
   if (loading && !draft) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-leaf-200 bg-leaf-50 px-4 py-3 text-sm text-leaf-800">
+      <div className="flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
         <Sparkles className="size-4 animate-pulse" /> Drafting a reply from the knowledge base and the author&apos;s account data…
       </div>
     );
@@ -336,9 +336,9 @@ function DraftPanel({ draft, loading, error, wanted, onRegenerate, onReset }: { 
   if (!draft) return null;
   const isAi = draft.source === 'ai';
   return (
-    <div className={cx('rounded-lg border px-4 py-3 text-sm', isAi ? 'border-leaf-200 bg-leaf-50' : 'border-amber-line bg-amber-soft')}>
+    <div className={cx('rounded-lg border px-4 py-3 text-sm', isAi ? 'border-brand-200 bg-brand-50' : 'border-amber-line bg-amber-soft')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className={cx('flex items-center gap-2 font-medium', isAi ? 'text-leaf-800' : 'text-amber-ink')}>
+        <p className={cx('flex items-center gap-2 font-medium', isAi ? 'text-brand-800' : 'text-amber-ink')}>
           {isAi ? <Sparkles className="size-4" /> : <Wand2 className="size-4" />}
           {isAi ? 'AI-drafted reply' : 'Template reply (AI unavailable)'}
           <span className="text-xs font-normal opacity-75">Edit freely before sending</span>

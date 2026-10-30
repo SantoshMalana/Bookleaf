@@ -62,7 +62,7 @@ export default function TicketDetail() {
         <StatusBadge status={t.status} />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_280px]">
         <div className="space-y-5">
           <Card className="p-5">
             <TicketThread viewer="author" firstMessage={{ name: 'You', body: t.description, at: t.createdAt }} messages={t.messages ?? []} />
@@ -72,7 +72,7 @@ export default function TicketDetail() {
           </Card>
 
           {closed ? (
-            <p className="rounded-lg bg-paper px-4 py-3 text-sm text-muted">This ticket is closed. <Link to="/tickets/new" className="font-medium text-leaf-700 underline">Raise a new ticket</Link> if you need more help.</p>
+            <p className="rounded-lg bg-paper px-4 py-3 text-sm text-muted">This ticket is closed. <Link to="/tickets/new" className="font-medium text-brand-700 underline">Raise a new ticket</Link> if you need more help.</p>
           ) : (
             <Card>
               <CardHeader title={t.status === 'Resolved' ? 'Not fully resolved? Reply to reopen' : 'Add a follow-up'} />

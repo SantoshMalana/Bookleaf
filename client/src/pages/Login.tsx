@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { HeroArt } from '../components/Decor';
 import { BrandMark } from '../components/Shell';
 import { Badge, Button, cx, Field, inputCls, Spinner } from '../components/ui';
 import { api, ApiError } from '../lib/api';
@@ -50,29 +51,29 @@ export default function Login() {
   const authors = demo.data?.accounts.filter((a) => a.role === 'author') ?? [];
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
-      <aside className="relative hidden overflow-hidden bg-leaf-800 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute -top-24 -right-24 size-[420px] rounded-full bg-leaf-700/60" aria-hidden />
-        <div className="absolute -bottom-32 -left-16 size-[360px] rounded-full bg-leaf-900/70" aria-hidden />
+    <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
+      <aside className="relative hidden overflow-hidden bg-gradient-to-br from-brand-50 via-brand-100 to-brand-200 p-12 lg:flex lg:flex-col lg:justify-between">
+        <HeroArt className="pointer-events-none absolute inset-0 h-full w-full" />
         <div className="relative">
-          <BrandMark light />
+          <BrandMark size="lg" />
         </div>
-        <div className="relative max-w-md">
-          <h1 className="text-[40px] leading-[1.1] font-semibold">Author support, handled with care.</h1>
-          <p className="mt-4 text-[17px] leading-relaxed text-leaf-200">
-            Ask about royalties, ISBNs, printing or your book&apos;s progress. Our team replies faster and more consistently — with answers grounded in your real account data.
+        <div className="relative max-w-lg">
+          <p className="text-sm font-extrabold tracking-[0.14em] text-brand-700 uppercase">Author portal</p>
+          <h1 className="mt-3 text-[52px] leading-[1.05] font-extrabold text-brand-500">Author Support,<br />Made Easy</h1>
+          <p className="mt-5 text-[19px] leading-relaxed font-medium text-[#44474d]">
+            Track your books and royalties, ask us anything, and get answers right here — no more waiting on email threads.
           </p>
-          <ul className="mt-8 space-y-3.5 text-[15px] text-leaf-100">
+          <ul className="mt-8 space-y-3.5 text-[16px] font-semibold text-ink">
             {[
-              [Zap, 'Replies appear here the moment our team sends them'],
-              [Sparkles, 'AI-assisted triage so urgent issues are seen first'],
+              [Zap, 'Replies show up the moment our team sends them'],
+              [Sparkles, 'Smart triage so urgent issues are seen first'],
               [ShieldCheck, 'You only ever see your own books and tickets'],
             ].map(([Icon, text]) => {
               const I = Icon as typeof Zap;
               return (
                 <li key={text as string} className="flex items-center gap-3">
-                  <span className="grid size-8 place-items-center rounded-lg bg-white/10">
-                    <I className="size-4" />
+                  <span className="grid size-9 place-items-center rounded-full bg-white text-brand-600 shadow-sm">
+                    <I className="size-[18px]" />
                   </span>
                   {text as string}
                 </li>
@@ -80,16 +81,16 @@ export default function Login() {
             })}
           </ul>
         </div>
-        <p className="relative text-sm text-leaf-300">© BookLeaf Publishing · Author Support & Communication Portal</p>
+        <p className="relative text-sm font-semibold text-brand-800/80">© BookLeaf Publishing · Publishing Made Easy</p>
       </aside>
 
-      <main className="flex items-center justify-center px-5 py-10 sm:px-10">
+      <main className="flex items-center justify-center bg-white px-5 py-10 sm:px-10">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden">
             <BrandMark />
           </div>
-          <h2 className="text-[28px] font-semibold">Sign in</h2>
-          <p className="mt-1 text-[15px] text-muted">Use your BookLeaf email and password.</p>
+          <h2 className="text-[32px] font-extrabold">Welcome back</h2>
+          <p className="mt-1 text-[15px] text-muted">Sign in with your BookLeaf email and password.</p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
             <Field label="Email" htmlFor="email">
@@ -97,14 +98,14 @@ export default function Login() {
             </Field>
             <Field label="Password" htmlFor="password">
               <div className="relative">
-                <input id="password" type={show ? 'text' : 'password'} autoComplete="current-password" className={cx(inputCls, 'pr-10')} value={password} onChange={(e) => setPassword(e.target.value)} required />
-                <button type="button" onClick={() => setShow((s) => !s)} className="absolute inset-y-0 right-0 grid w-10 place-items-center text-faint hover:text-ink" aria-label={show ? 'Hide password' : 'Show password'}>
+                <input id="password" type={show ? 'text' : 'password'} autoComplete="current-password" className={cx(inputCls, 'pr-11')} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <button type="button" onClick={() => setShow((s) => !s)} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-faint hover:text-brand-700" aria-label={show ? 'Hide password' : 'Show password'}>
                   {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </Field>
             {error && (
-              <p role="alert" className="rounded-lg border border-clay-line bg-clay-soft px-3 py-2 text-sm text-clay">
+              <p role="alert" className="rounded-xl border border-clay-line bg-clay-soft px-3.5 py-2.5 text-sm text-clay">
                 {error}
               </p>
             )}
@@ -120,23 +121,23 @@ export default function Login() {
           )}
 
           {demo.data && (
-            <section className="mt-8 rounded-xl border border-dashed border-line-strong bg-white/60 p-4" aria-label="Demo accounts">
+            <section className="mt-8 rounded-2xl border border-dashed border-brand-300 bg-brand-50/60 p-4" aria-label="Demo accounts">
               <div className="flex items-center justify-between">
-                <h3 className="font-sans text-sm font-semibold">Demo accounts</h3>
+                <h3 className="text-sm font-extrabold">Demo accounts</h3>
                 <Badge tone="amber">Reviewer shortcut</Badge>
               </div>
               <p className="mt-1 text-sm text-muted">
-                One click signs you in. Passwords — authors: <code className="rounded bg-black/5 px-1">{demo.data.authorPassword}</code>, admins: <code className="rounded bg-black/5 px-1">{demo.data.adminPassword}</code>
+                One click signs you in. Passwords — authors: <code className="rounded bg-white px-1.5 py-0.5 text-[13px]">{demo.data.authorPassword}</code>, admins: <code className="rounded bg-white px-1.5 py-0.5 text-[13px]">{demo.data.adminPassword}</code>
               </p>
 
-              <p className="mt-4 text-xs font-semibold tracking-wide text-muted uppercase">Admin / operations</p>
+              <p className="mt-4 text-xs font-extrabold tracking-wide text-muted uppercase">Admin / operations</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {admins.map((a) => (
                   <DemoButton key={a.email} name={a.name} sub={a.email} busy={busy === a.email} onClick={() => void signIn(a.email, demo.data!.adminPassword, a.email)} dark />
                 ))}
               </div>
 
-              <p className="mt-4 text-xs font-semibold tracking-wide text-muted uppercase">Authors</p>
+              <p className="mt-4 text-xs font-extrabold tracking-wide text-muted uppercase">Authors</p>
               <div className="mt-2 grid max-h-52 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                 {authors.map((a) => (
                   <DemoButton key={a.email} name={a.name} sub={a.city ?? a.email} busy={busy === a.email} onClick={() => void signIn(a.email, demo.data!.authorPassword, a.email)} />
@@ -157,16 +158,16 @@ function DemoButton({ name, sub, onClick, busy, dark }: { name: string; sub: str
       onClick={onClick}
       disabled={busy}
       className={cx(
-        'flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-60',
-        dark ? 'border-leaf-800 bg-leaf-800 text-white hover:bg-leaf-900' : 'border-line bg-white hover:border-leaf-300 hover:bg-leaf-50',
+        'flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-colors disabled:opacity-60',
+        dark ? 'border-navy-800 bg-navy-800 text-white hover:bg-navy-900' : 'border-line bg-white hover:border-brand-300 hover:bg-brand-50',
       )}
     >
-      <span className={cx('grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold', dark ? 'bg-white/15' : 'bg-leaf-100 text-leaf-700')}>
+      <span className={cx('grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold', dark ? 'bg-brand-500 text-white' : 'bg-brand-100 text-brand-700')}>
         {busy ? <Spinner className={cx('size-3.5', dark && 'text-white')} /> : name.charAt(0)}
       </span>
       <span className="min-w-0 leading-tight">
         <span className="block truncate text-sm font-medium">{name}</span>
-        <span className={cx('block truncate text-xs', dark ? 'text-leaf-200' : 'text-muted')}>{sub}</span>
+        <span className={cx('block truncate text-xs', dark ? 'text-white/65' : 'text-muted')}>{sub}</span>
       </span>
     </button>
   );

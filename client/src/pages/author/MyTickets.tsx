@@ -32,7 +32,7 @@ export default function MyTickets() {
       />
       <div className="mb-4 inline-flex rounded-lg border border-line bg-white p-1" role="tablist">
         {TABS.map((t) => (
-          <button key={t.label} role="tab" aria-selected={status === t.key} onClick={() => setStatus(t.key)} className={cx('rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors', status === t.key ? 'bg-leaf-600 text-white' : 'text-muted hover:text-ink')}>
+          <button key={t.label} role="tab" aria-selected={status === t.key} onClick={() => setStatus(t.key)} className={cx('rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors', status === t.key ? 'bg-brand-600 text-white' : 'text-muted hover:text-ink')}>
             {t.label}
           </button>
         ))}
@@ -55,14 +55,14 @@ export default function MyTickets() {
         <ul className="space-y-3">
           {q.data!.items.map((t) => (
             <li key={t.id}>
-              <Link to={`/tickets/${t.id}`} className="block rounded-xl border border-line bg-card p-4 shadow-[0_1px_2px_rgba(28,36,32,0.04)] transition hover:border-leaf-300 hover:shadow-md hover:shadow-black/5 sm:px-5">
+              <Link to={`/tickets/${t.id}`} className="block rounded-xl border border-line bg-card p-4 shadow-[0_1px_2px_rgba(28,36,32,0.04)] transition hover:border-brand-300 hover:shadow-md hover:shadow-black/5 sm:px-5">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-medium">{t.subject}</p>
                     <p className="mt-0.5 text-sm text-muted">{t.ticketId} · {t.book?.title ?? 'General / Account Level'}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {t.replyCount > 0 && t.status !== 'Closed' && <Badge tone="leaf">{t.replyCount} {t.replyCount === 1 ? 'reply' : 'replies'}</Badge>}
+                    {t.replyCount > 0 && t.status !== 'Closed' && <Badge tone="brand">{t.replyCount} {t.replyCount === 1 ? 'reply' : 'replies'}</Badge>}
                     <StatusBadge status={t.status} />
                   </div>
                 </div>

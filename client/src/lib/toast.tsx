@@ -38,12 +38,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               key={t.id}
               className={cx(
                 'pop-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-white p-3.5 shadow-lg shadow-black/5',
-                t.tone === 'success' && 'border-leaf-200',
+                t.tone === 'success' && 'border-ok-200',
                 t.tone === 'info' && 'border-line',
                 t.tone === 'error' && 'border-clay-line',
               )}
             >
-              <I className={cx('mt-0.5 size-5 shrink-0', t.tone === 'success' && 'text-leaf-600', t.tone === 'info' && 'text-sky-ink', t.tone === 'error' && 'text-clay')} />
+              <I className={cx('mt-0.5 size-5 shrink-0', t.tone === 'success' && 'text-ok-600', t.tone === 'info' && 'text-sky-ink', t.tone === 'error' && 'text-clay')} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{t.title}</p>
                 {t.body && <p className="mt-0.5 text-sm text-muted">{t.body}</p>}

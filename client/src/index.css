@@ -1,35 +1,50 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/nunito-sans';
 
+/*
+ * Brand tokens — taken from bookleafpub.in: coral primary (#F16876), charcoal text (#2F2E2E),
+ * soft pink washes, pill buttons. "ok" green is reserved for success states (paid, live, resolved),
+ * and "clay" for errors, so coral always means "brand / interactive", never "success".
+ */
 @theme {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-serif: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Nunito Sans Variable', 'Avenir Next', Avenir, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Nunito Sans Variable', ui-sans-serif, system-ui, sans-serif;
 
-  --color-paper: #faf8f3;
+  --color-paper: #fafafa;
   --color-card: #ffffff;
-  --color-ink: #1c2420;
-  --color-muted: #5f6b64;
-  --color-faint: #8a948d;
-  --color-line: #e7e3d9;
-  --color-line-strong: #d4cfc2;
+  --color-ink: #2f2e2e;
+  --color-muted: #5e5e5e;
+  --color-faint: #8f8a8b;
+  --color-line: #efe9ea;
+  --color-line-strong: #dcd3d5;
 
-  --color-leaf-50: #eef7f1;
-  --color-leaf-100: #d9ede0;
-  --color-leaf-200: #b6dcc4;
-  --color-leaf-300: #8cc4a2;
-  --color-leaf-500: #2f8460;
-  --color-leaf-600: #1f6b4f;
-  --color-leaf-700: #17533e;
-  --color-leaf-800: #123f30;
-  --color-leaf-900: #0d2e23;
+  --color-brand-50: #fff5f6;
+  --color-brand-100: #ffe7e9;
+  --color-brand-200: #fdd0d4;
+  --color-brand-300: #f8b2b9;
+  --color-brand-400: #f68994;
+  --color-brand-500: #f16876;
+  --color-brand-600: #d63b52;
+  --color-brand-700: #b8283f;
+  --color-brand-800: #8f1f32;
+  --color-brand-900: #6b1726;
+
+  --color-ok-50: #eaf7ef;
+  --color-ok-100: #d2eedb;
+  --color-ok-200: #a9ddbb;
+  --color-ok-500: #2e9e64;
+  --color-ok-600: #23834f;
+  --color-ok-700: #1b6a40;
+
+  --color-navy-800: #2b3647;
+  --color-navy-900: #202a39;
 
   --color-amber-soft: #fff6e0;
   --color-amber-line: #f0d9a0;
   --color-amber-ink: #8a5a00;
-  --color-clay-soft: #fdeeea;
-  --color-clay-line: #f2c4b9;
-  --color-clay: #b5412f;
+  --color-clay-soft: #fcebea;
+  --color-clay-line: #f3c1bd;
+  --color-clay: #b3261e;
   --color-sky-soft: #eaf3fd;
   --color-sky-ink: #1f5fa8;
 }
@@ -40,64 +55,46 @@
   }
   body {
     @apply bg-paper font-sans text-ink antialiased;
-    font-feature-settings: 'cv11', 'ss01';
   }
   h1,
   h2,
   h3 {
-    @apply font-serif;
-    letter-spacing: -0.01em;
+    @apply font-sans font-bold;
+    letter-spacing: -0.015em;
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-leaf-500;
+    @apply outline-2 outline-offset-2 outline-brand-600;
   }
   ::selection {
-    background: var(--color-leaf-200);
+    background: var(--color-brand-200);
   }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #efebe1 25%, #f7f4ec 37%, #efebe1 63%);
+  background: linear-gradient(90deg, #f3eced 25%, #faf6f6 37%, #f3eced 63%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease infinite;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 @keyframes pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
 }
-.pop-in {
-  animation: pop-in 0.18s ease-out;
-}
+.pop-in { animation: pop-in 0.18s ease-out; }
 @keyframes pulse-ring {
-  0% {
-    box-shadow: 0 0 0 0 rgba(47, 132, 96, 0.45);
-  }
-  100% {
-    box-shadow: 0 0 0 8px rgba(47, 132, 96, 0);
-  }
+  0% { box-shadow: 0 0 0 0 rgba(46, 158, 100, 0.45); }
+  100% { box-shadow: 0 0 0 8px rgba(46, 158, 100, 0); }
 }
-.live-dot {
-  animation: pulse-ring 2s ease-out infinite;
+.live-dot { animation: pulse-ring 2s ease-out infinite; }
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
+.float-slow { animation: float-y 7s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .skeleton,
-  .pop-in,
-  .live-dot {
-    animation: none;
-  }
+  .skeleton, .pop-in, .live-dot, .float-slow { animation: none; }
 }

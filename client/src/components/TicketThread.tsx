@@ -37,13 +37,13 @@ function Bubble({ role, name, at, body, internal, original, aiAssist, viewer }: 
       <div
         className={cx(
           'max-w-[92%] rounded-2xl border px-4 py-3 sm:max-w-[80%]',
-          internal ? 'border-dashed border-amber-line bg-amber-soft' : staff ? 'border-leaf-200 bg-leaf-50' : 'border-line bg-white',
+          internal ? 'border-dashed border-amber-line bg-amber-soft' : staff ? 'border-brand-200 bg-brand-50' : 'border-line bg-white',
         )}
       >
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-          <span className="grid size-5 place-items-center rounded-full bg-black/5">{staff ? <ShieldCheck className="size-3 text-leaf-700" /> : <UserRound className="size-3 text-muted" />}</span>
+          <span className="grid size-5 place-items-center rounded-full bg-black/5">{staff ? <ShieldCheck className="size-3 text-brand-700" /> : <UserRound className="size-3 text-muted" />}</span>
           <span className="font-semibold text-ink">{name}</span>
-          {staff && viewer === 'author' && <span className="text-leaf-700">BookLeaf team</span>}
+          {staff && viewer === 'author' && <span className="text-brand-700">BookLeaf team</span>}
           {original && <span className="rounded bg-black/5 px-1.5 py-px text-[10px] font-semibold tracking-wide text-muted uppercase">Original query</span>}
           {internal && (
             <span className="inline-flex items-center gap-1 rounded bg-amber-ink/10 px-1.5 py-px text-[10px] font-semibold tracking-wide text-amber-ink uppercase">
@@ -51,7 +51,7 @@ function Bubble({ role, name, at, body, internal, original, aiAssist, viewer }: 
             </span>
           )}
           {viewer === 'admin' && aiAssist?.fromDraft && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-leaf-700">
+            <span className="inline-flex items-center gap-1 text-[11px] text-brand-700">
               <Sparkles className="size-3" /> {aiAssist.edited ? 'AI draft, edited' : 'AI draft, sent as is'}
             </span>
           )}

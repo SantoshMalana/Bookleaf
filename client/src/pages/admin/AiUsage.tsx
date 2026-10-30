@@ -20,11 +20,11 @@ export default function AiUsagePage() {
       ) : (
         <div className="space-y-5">
           <Card>
-            <CardHeader title="Provider" action={<Badge tone={u.config.configured ? 'leaf' : 'amber'}>{u.config.configured ? 'Configured' : 'Not configured — fallback mode'}</Badge>} />
+            <CardHeader title="Provider" action={<Badge tone={u.config.configured ? 'ok' : 'amber'}>{u.config.configured ? 'Configured' : 'Not configured — fallback mode'}</Badge>} />
             <dl className="grid gap-4 p-5 text-sm sm:grid-cols-4">
               <div><dt className="text-xs text-muted">Provider</dt><dd className="mt-0.5 font-medium">{u.config.provider}</dd></div>
               <div><dt className="text-xs text-muted">Model</dt><dd className="mt-0.5 font-medium">{u.config.model}</dd></div>
-              <div><dt className="text-xs text-muted">Circuit breaker</dt><dd className="mt-0.5"><Badge tone={u.config.circuit === 'closed' ? 'leaf' : 'clay'}>{u.config.circuit}</Badge></dd></div>
+              <div><dt className="text-xs text-muted">Circuit breaker</dt><dd className="mt-0.5"><Badge tone={u.config.circuit === 'closed' ? 'ok' : 'clay'}>{u.config.circuit}</Badge></dd></div>
               <div><dt className="text-xs text-muted">List price (per M tokens)</dt><dd className="mt-0.5 font-medium tabular-nums">${u.config.priceInPerMTok} in / ${u.config.priceOutPerMTok} out</dd></div>
             </dl>
           </Card>
@@ -36,9 +36,9 @@ export default function AiUsagePage() {
             <StatTile label="Estimated cost" value={usd(u.totals.costUsd)} tone="good" />
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <Card>
-              <CardHeader title="Auto-triage" subtitle="Category + priority on ticket creation" action={<Zap className="size-4 text-leaf-600" />} />
+              <CardHeader title="Auto-triage" subtitle="Category + priority on ticket creation" action={<Zap className="size-4 text-brand-600" />} />
               <Rows rows={[
                 ['Classified by AI', num(u.triage.aiClassified)],
                 ['Rule-based fallback', `${num(u.triage.fallbackClassified)} (${Math.round(u.triage.fallbackRate * 100)}%)`],
@@ -50,7 +50,7 @@ export default function AiUsagePage() {
               ]} />
             </Card>
             <Card>
-              <CardHeader title="Draft replies" subtitle="Generated when an admin opens a ticket" action={<Bot className="size-4 text-leaf-600" />} />
+              <CardHeader title="Draft replies" subtitle="Generated when an admin opens a ticket" action={<Bot className="size-4 text-brand-600" />} />
               <Rows rows={[
                 ['Sent as drafted', num(u.draft.repliesSentAsIs)],
                 ['Sent after editing', num(u.draft.repliesSentEdited)],
