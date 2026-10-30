@@ -1,0 +1,24 @@
+# Render Blueprint: one web service serves the API and the built React app.
+services:
+  - type: web
+    name: bookleaf-author-portal
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI        # paste your Atlas connection string in the Render dashboard
+        sync: false
+      - key: ANTHROPIC_API_KEY  # or OPENAI_API_KEY; set in the dashboard, never in git
+        sync: false
+      - key: AUTO_SEED
+        value: "true"
+      - key: DEMO_MODE
+        value: "true"
