@@ -11,7 +11,8 @@
     "seed": "tsx src/seed/run.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "eval:ai": "tsx scripts/eval-ai.ts"
+    "eval:ai": "tsx scripts/eval-ai.ts",
+    "serve": "tsx src/server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

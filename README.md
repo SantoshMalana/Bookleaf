@@ -36,13 +36,13 @@ Requirements: Node 20+ and a MongoDB (a free Atlas cluster, or `mongod` locally)
 git clone <repo-url> && cd bookleaf-author-portal
 npm install
 cp .env.example server/.env        # then edit: MONGODB_URI, optionally an LLM key
-npm run seed                       # loads the dataset + demo accounts/tickets (idempotent: wipes and reloads)
+npm run seed                       # loads the dataset + demo accounts/tickets (upsert; add `-- --reset` to wipe and reload)
 npm run dev                        # API on :4000, web app on :5173 (proxying /api)
 ```
 
 Open http://localhost:5173. With no LLM key set the app still works end to end: triage falls back to rules and drafts come from policy templates (see [AI → graceful degradation](#4-ai-integration)).
 
-Other commands: `npm test` (69 tests, needs a MongoDB), `npm run typecheck`, `npm run build && npm start` (production mode, one process serves API + UI), `npm run eval:ai` (labelled triage cases against your configured model) or `npm run eval:ai -- --fallback` (the rule-based fallback; needs no key).
+Other commands: `npm test` (69 API/domain tests, needs a MongoDB), `npm run test:e2e` (35 browser tests, see [Testing](#7-testing)), `npm run typecheck`, `npm run build && npm start` (production mode, one process serves API + UI), `npm run eval:ai` (labelled triage cases against your configured model) or `npm run eval:ai -- --fallback` (the rule-based fallback; needs no key).
 
 ### Environment variables
 
@@ -189,7 +189,17 @@ Lists return `{ items, meta: { page, limit, total, totalPages } }`; single resou
 
 ## 7. Testing
 
-`npm test` runs 69 tests against a real MongoDB (not mocks): the royalty/payout/SLA/priority rules, context-building (the right KB section, facts present, size budget), the AI client (timeouts, 429, invalid output, circuit breaker, fallback), and the HTTP API (auth, RBAC, **cross-author isolation**, internal-note secrecy, validation errors, filters, SSE, OpenAPI coverage). `npm run typecheck` covers both server and client.
+**`npm test`** — 69 tests against a real MongoDB (not mocks): the royalty/payout/SLA/priority rules, context-building (the right KB section, facts present, size budget), the AI client (timeouts, 429, invalid output, circuit breaker, fallback), and the HTTP API (auth, RBAC, **cross-author isolation**, internal-note secrecy, validation errors, filters, SSE, OpenAPI coverage).
+
+**`npm run test:e2e`** — 35 Playwright tests that drive a real browser against real servers (it builds the client, boots two freshly seeded servers on throwaway databases, and tears them down). First time only: `npx playwright install chromium`. Needs a MongoDB at `mongodb://127.0.0.1:27017` (override with `MONGODB_BASE_URI`). It covers:
+
+- **Auth & guards** — redirects, wrong password, sign-out really ends the session, authors cannot open `/admin`, admins are bounced from author pages.
+- **Author portal** — the overdue-payout, below-threshold and in-production cases with the exact dataset, empty states, inline form validation, UI-only attachments, book dropdown scoped to the author.
+- **The full ticket lifecycle with two live browser sessions** — author submits → admin sees it arrive and triaged → filters/overrides/assignment → AI draft edited and sent → **the author sees the reply without refreshing** → internal notes never reach the author (checked in the DOM and in the raw API JSON) → follow-up → resolve → reopen → closed.
+- **API security** — 401/403/404 behaviour, tampered tokens, cross-author access, validation errors with field details, no user enumeration on login, OpenAPI served.
+- **AI down** — a second server with no LLM: tickets still created, rule-based triage (legal language → Critical), template draft, manual reply delivered live.
+
+`npm run typecheck` covers both server and client.
 
 ## 8. Assumptions
 
