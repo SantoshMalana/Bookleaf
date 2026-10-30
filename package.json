@@ -1,0 +1,20 @@
+{
+  "name": "bookleaf-author-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BookLeaf Author Support & Communication Portal — author + admin portals with AI-assisted triage and drafting",
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w server && npm run build -w client",
+    "start": "npm run start -w server",
+    "seed": "npm run seed -w server",
+    "test": "npm test -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "eval:ai": "npm run eval:ai -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "engines": { "node": ">=20" }
+}
