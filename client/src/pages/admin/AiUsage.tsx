@@ -21,11 +21,18 @@ export default function AiUsagePage() {
         <div className="space-y-5">
           <Card>
             <CardHeader title="Provider" action={<Badge tone={u.config.configured ? 'ok' : 'amber'}>{u.config.configured ? 'Configured' : 'Not configured — fallback mode'}</Badge>} />
-            <dl className="grid gap-4 p-5 text-sm sm:grid-cols-4">
+            <dl className="grid gap-4 p-5 text-sm sm:grid-cols-5">
               <div><dt className="text-xs text-muted">Provider</dt><dd className="mt-0.5 font-medium">{u.config.provider}</dd></div>
               <div><dt className="text-xs text-muted">Model</dt><dd className="mt-0.5 font-medium">{u.config.model}</dd></div>
               <div><dt className="text-xs text-muted">Circuit breaker</dt><dd className="mt-0.5"><Badge tone={u.config.circuit === 'closed' ? 'ok' : 'clay'}>{u.config.circuit}</Badge></dd></div>
               <div><dt className="text-xs text-muted">List price (per M tokens)</dt><dd className="mt-0.5 font-medium tabular-nums">${u.config.priceInPerMTok} in / ${u.config.priceOutPerMTok} out</dd></div>
+              <div>
+                <dt className="text-xs text-muted">Today&apos;s spend cap (UTC)</dt>
+                <dd className="mt-0.5 font-medium tabular-nums" data-testid="budget">
+                  {u.budget.dailyUsd > 0 ? `${usd(u.budget.spentTodayUsd)} of ${usd(u.budget.dailyUsd)}` : 'No cap'}
+                  {u.budget.dailyUsd > 0 && u.budget.spentTodayUsd >= u.budget.dailyUsd && <span className="ml-2"><Badge tone="clay">Reached — using fallback</Badge></span>}
+                </dd>
+              </div>
             </dl>
           </Card>
 

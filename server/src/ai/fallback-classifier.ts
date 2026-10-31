@@ -22,12 +22,14 @@ const RULES: Array<{ category: Category; patterns: Array<[RegExp, number]> }> = 
       [/\bisbn\b/i, 5],
       [/\b(metadata|wrong (title|author name|cover)|author name (is )?(spelled|wrong)|duplicate (listing|isbn))\b/i, 3],
       [/\b(different|wrong|incorrect|mismatch)\b.*\b(isbn|book linked)\b/i, 2],
+      [/\b(misspel(l)?t|spelled wrong|(name|title) (appears|shows|is shown) as|about the author|old (draft )?cover|wrong cover|no isbn)\b/i, 3],
     ],
   },
   {
     category: 'Printing & Quality',
     patterns: [
       [/\b(print(ed|ing)? quality|misprint(s|ed)?|blurry|blurred|smudg(e|ed)|misalign(ed|ment)?|binding|pages? (fell|falling|torn|missing|cut)|colou?r (is |are )?(off|faded|inconsistent|wrong)|faded|reprint|damaged copies?|defect(ive)?)\b/i, 5],
+      [/\b(crushed|bent corners?|torn (cover|pages?)|upside[- ]down|washed[- ]out|dull(er)? colou?rs?|colou?rs? (look|looks|are|is) (dull|washed|faded))\b/i, 5],
       [/\b(author copies|physical cop(y|ies)|paperback|hardcover|paper quality)\b/i, 2],
     ],
   },
@@ -35,6 +37,7 @@ const RULES: Array<{ category: Category; patterns: Array<[RegExp, number]> }> = 
     category: 'Distribution & Availability',
     patterns: [
       [/\b(currently unavailable|out of stock|not (showing|available|listed|visible)|unavailable|stock sync|delisted|not live on|listing (is )?(missing|down))\b/i, 5],
+      [/\b(kindle|e-?book|cannot find (it|my book) on|not (on|in) the (bookleaf )?store|not showing on)\b/i, 4],
       [/\b(amazon|flipkart|bookleaf store|platform|listing|listed)\b/i, 1.5],
     ],
   },
@@ -47,7 +50,7 @@ const RULES: Array<{ category: Category; patterns: Array<[RegExp, number]> }> = 
   },
 ];
 
-const CRITICAL = /\b(legal action|lawyer|advocate|legal notice|consumer (court|forum)|police|fraud|scam|cheated|defamation|data (leak|breach))\b/i;
+const CRITICAL = /\b(legal action|lawyer|advocate|legal notice|consumer (court|forum)|police|fraud|scam|cheated|defamation|data (leak|breach)|(sent|went|transferred|credited) to (the )?(wrong|someone else|another)|(phone number|home address|personal (details|information|data)) (and [\w ]{1,20} )?(appears?|is (visible|shown|public)))\b/i;
 const URGENT_ROYALTY = /\b(not (yet )?(received|paid)|haven'?t (received|been paid)|never (received|paid)|no royalt(y|ies)|unpaid|overdue)\b/i;
 const LOW_SIGNALS = /\b(can i|is it possible|how (do|can) i|update (my )?(bio|description|author)|just (wanted|checking)|suggestion|feedback)\b/i;
 

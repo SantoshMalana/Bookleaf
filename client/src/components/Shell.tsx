@@ -97,7 +97,9 @@ function Shell({ items, tag, dark }: { items: NavItem[]; tag: string; dark?: boo
       <div className="relative flex-1">
         {!dark && <CloudBackdrop className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[320px] w-full [mask-image:linear-gradient(to_bottom,#000_65%,transparent)]" />}
         <main className="relative mx-auto max-w-6xl px-4 py-8 pb-24 sm:px-6 sm:py-10">
-          <Outlet />
+          <div key={pathname} className="page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
 

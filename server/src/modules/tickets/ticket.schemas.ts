@@ -25,6 +25,12 @@ export type CreateTicketInput = z.infer<typeof createTicketSchema>;
 
 export const messageSchema = z.object({ body: z.string().trim().min(1, 'Message cannot be empty').max(LIMITS.messageMax) });
 
+export const feedbackSchema = z.object({
+  helpful: z.boolean({ required_error: 'Please say whether the answer was helpful' }),
+  comment: z.string().trim().max(500, 'Please keep your comment under 500 characters').optional(),
+});
+export type FeedbackInput = z.infer<typeof feedbackSchema>;
+
 /** "Open,In Progress" → ['Open','In Progress'] */
 const csvEnum = <T extends readonly [string, ...string[]]>(values: T) =>
   z

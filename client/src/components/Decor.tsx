@@ -9,11 +9,12 @@ export function CloudBackdrop({ className = '' }: { className?: string }) {
         </linearGradient>
       </defs>
       <rect width="1200" height="420" fill="url(#bl-wash)" />
-      <g fill="#ffe3e6" opacity=".9" className="float-slow">
-        <path d="M860 120c8-34 40-50 70-42 14-30 58-38 84-14 30-6 56 14 58 40 22 4 38 22 36 42H830c-14-6-18-22-8-34 6-8 22-6 38 8z" transform="translate(30 -20)" />
-      </g>
-      <g fill="#ffd3d8" opacity=".55">
-        <path d="M150 210c6-26 32-38 54-32 10-22 44-28 64-10 22-4 42 10 44 30 16 3 28 16 26 32H132c-10-4-13-16-6-26 5-6 17-5 24 6z" />
+      {/* Fully rounded clouds (circles + pill base) so no edge ever looks cropped. */}
+      <g fill="#ffe3e6" opacity=".75" className="float-slow">
+        <rect x="900" y="118" width="250" height="52" rx="26" />
+        <circle cx="965" cy="112" r="38" />
+        <circle cx="1030" cy="92" r="52" />
+        <circle cx="1100" cy="120" r="34" />
       </g>
       <path d="M0 330c120-48 240-48 360-10s240 54 360 20 300-84 480-22v102H0z" fill="#ffe7e9" opacity=".8" />
       <path d="M0 372c160-40 300-26 440 10s300 44 440 4 220-30 320-6v40H0z" fill="#ffd9dd" opacity=".6" />

@@ -80,6 +80,12 @@ export interface Message {
   aiAssist?: { fromDraft: boolean; edited: boolean } | null;
 }
 
+export interface Feedback {
+  helpful: boolean;
+  comment: string | null;
+  at: string;
+}
+
 export interface AuthorTicket {
   id: string;
   ticketId: string;
@@ -93,6 +99,7 @@ export interface AuthorTicket {
   updatedAt: string;
   lastActivityAt: string;
   replyCount: number;
+  feedback: Feedback | null;
   messages?: Message[];
 }
 
@@ -130,6 +137,7 @@ export interface AdminTicket {
   isOverdue: boolean;
   firstResponseAt: string | null;
   resolvedAt: string | null;
+  feedback: Feedback | null;
   createdAt: string;
   lastActivityAt: string;
   messages?: Message[];
@@ -151,11 +159,13 @@ export interface QueueStats {
   assignedToMe: number;
   awaitingResponse: number;
   avgFirstResponseHours: number | null;
+  feedback: { rated: number; helpful: number };
 }
 
 export interface AiUsage {
   windowDays: number;
   config: { configured: boolean; provider: string; model: string; circuit: 'closed' | 'open' | 'half-open'; retryAfterMs: number; priceInPerMTok: number; priceOutPerMTok: number };
+  budget: { dailyUsd: number; spentTodayUsd: number };
   totals: { successfulCalls: number; inputTokens: number; outputTokens: number; costUsd: number };
   triage: {
     successfulCalls: number; failedCalls: number; skippedCalls: number; avgInputTokens: number; avgOutputTokens: number; avgLatencyMs: number; costUsd: number;

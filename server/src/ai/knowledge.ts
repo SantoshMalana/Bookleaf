@@ -58,7 +58,7 @@ export const CATEGORY_POLICY: Record<Category, string> = {
  */
 export const CATEGORY_GUIDANCE: Record<Category, string> = {
   'Royalty & Payments': `GUIDANCE (royalty)
-Not received any royalty: acknowledge the frustration; explain the quarterly cycle and 45-day window; give the specific next payout date; if genuinely overdue, own it and escalate with a 48-hour timeline. Bank-link status is not in our system — never assert it, ask or flag it.
+Not received any royalty: acknowledge the frustration; explain the quarterly cycle and 45-day window; if NEXT_PAYOUT_DATE is in FACTS give that exact date; if FACTS carry REQUIRED_ACTION (overdue), follow it instead — own it, escalate to finance with a 48-hour timeline, and do not point to a future payout date. Bank-link status is not in our system — never assert it, ask or flag it.
 Amount seems too low: explain net profit = MRP − printing − platform commission − shipping; offer a detailed line-by-line breakdown; don't be defensive.`,
   'ISBN & Metadata Issues': `GUIDANCE (ISBN)
 Treat as high priority; acknowledge it is a serious data issue; confirm escalation to the production team immediately; give a 48-hour resolution timeline.`,

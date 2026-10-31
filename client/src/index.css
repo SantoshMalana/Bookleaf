@@ -68,6 +68,29 @@
   ::selection {
     background: var(--color-brand-200);
   }
+  /* Native dropdowns get the brand chevron instead of each OS's own arrow. */
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b8283f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+    cursor: pointer;
+  }
+  input[type='date'] {
+    min-height: 2.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.55;
+    filter: invert(25%) sepia(60%) saturate(2400%) hue-rotate(327deg);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brand-200) transparent;
+  }
 }
 
 @keyframes shimmer {
@@ -95,6 +118,23 @@
   50% { transform: translateY(-6px); }
 }
 .float-slow { animation: float-y 7s ease-in-out infinite; }
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.page-enter { animation: page-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* children of a list/grid rise in one after another */
+.stagger > * { animation: page-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.stagger > *:nth-child(2) { animation-delay: 0.05s; }
+.stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.stagger > *:nth-child(4) { animation-delay: 0.15s; }
+.stagger > *:nth-child(5) { animation-delay: 0.2s; }
+.stagger > *:nth-child(6) { animation-delay: 0.25s; }
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.bar-grow { transform-origin: left; animation: bar-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @media (prefers-reduced-motion: reduce) {
-  .skeleton, .pop-in, .live-dot, .float-slow { animation: none; }
+  .skeleton, .pop-in, .live-dot, .float-slow, .page-enter, .stagger > *, .bar-grow { animation: none; }
 }

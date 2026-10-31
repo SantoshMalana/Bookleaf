@@ -46,9 +46,9 @@ export default function Queue() {
     <>
       <PageHeader title="Ticket queue" subtitle="Urgent and overdue tickets float to the top. Triage is done by AI — override anything that looks off." />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
         {!s ? (
-          Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-[88px]" />)
+          Array.from({ length: 7 }, (_, i) => <Skeleton key={i} className="h-[88px]" />)
         ) : (
           <>
             <StatTile label="Active" value={s.active} hint={`${s.total} total`} active={isActiveView && !hasOther(filters, ['status'])} onClick={() => set({ status: 'Open,In Progress', overdue: null, assignee: null, priority: null })} />
@@ -57,6 +57,7 @@ export default function Queue() {
             <StatTile label="Unassigned" value={s.unassigned} tone={s.unassigned ? 'warn' : 'default'} hint="Active, no owner" active={get('assignee') === 'unassigned'} onClick={() => set({ assignee: 'unassigned', status: 'Open,In Progress', overdue: null, priority: null })} />
             <StatTile label="Assigned to me" value={s.assignedToMe} hint="Your tickets" active={get('assignee') === 'me'} onClick={() => set({ assignee: 'me', status: null, overdue: null, priority: null })} />
             <StatTile label="Avg. first reply" value={s.avgFirstResponseHours == null ? '—' : `${s.avgFirstResponseHours}h`} hint="Across replied tickets" />
+            <StatTile label="Helpful rate" value={s.feedback.rated ? `${Math.round((s.feedback.helpful / s.feedback.rated) * 100)}%` : '—'} tone={s.feedback.rated ? 'good' : 'default'} hint={s.feedback.rated ? `${s.feedback.rated} author ratings` : 'No ratings yet'} />
           </>
         )}
       </div>
@@ -74,11 +75,11 @@ export default function Queue() {
             <Select label="Assignee" value={get('assignee')} onChange={(v) => set({ assignee: v })} options={[['me', 'Me'], ['unassigned', 'Unassigned']]} />
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-muted">From</span>
-              <input type="date" className={cx(inputCls, 'w-full')} value={get('from')} onChange={(e) => set({ from: e.target.value })} />
+              <input type="date" className={cx(inputCls, 'w-full px-2.5 text-sm')} value={get('from')} onChange={(e) => set({ from: e.target.value })} />
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-muted">To</span>
-              <input type="date" className={cx(inputCls, 'w-full')} value={get('to')} onChange={(e) => set({ to: e.target.value })} />
+              <input type="date" className={cx(inputCls, 'w-full px-2.5 text-sm')} value={get('to')} onChange={(e) => set({ to: e.target.value })} />
             </label>
             <Select label="Sort" value={get('sort')} onChange={(v) => set({ sort: v })} blank="Urgency" options={[['oldest', 'Oldest first'], ['newest', 'Newest first'], ['activity', 'Recent activity']]} />
             {hasFilters ? (
@@ -142,16 +143,16 @@ function TicketRow({ t }: { t: AdminTicket }) {
       </td>
       <td className="px-3 py-3">
         {t.triage.status === 'pending' ? <SourceChip source="pending" /> : (
-          <div className="flex flex-col items-start gap-1">
-            <span className="text-[13px]">{t.category ?? '—'}</span>
-            <SourceChip source={t.categorySource} />
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-[13px] font-semibold">{t.category ?? '—'}</span>
+            <SourceChip source={t.categorySource} compact />
           </div>
         )}
       </td>
       <td className="px-3 py-3">
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           <PriorityBadge priority={t.priority} />
-          {t.triage.status !== 'pending' && <SourceChip source={t.prioritySource} />}
+          {t.triage.status !== 'pending' && <SourceChip source={t.prioritySource} compact />}
         </div>
       </td>
       <td className="px-3 py-3"><StatusBadge status={t.status} /></td>

@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck, API tests, browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      # Tests run against a throwaway database and never need an LLM key: AI is covered by a mock
+      # provider and a fault-injecting provider, so the build is deterministic and costs nothing.
+      MONGODB_URI: mongodb://127.0.0.1:27017/bookleaf_test
+      MONGODB_BASE_URI: mongodb://127.0.0.1:27017
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      LLM_PROVIDER: none
+      LOG_LEVEL: warn
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck (server + client)
+        run: npm run typecheck
+
+      - name: API, domain and AI tests (real MongoDB)
+        run: npm test
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser end-to-end tests (both portals)
+        run: npm run test:e2e
+
+      - name: Keep the Playwright report if something failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/report
+            e2e/results
+          retention-days: 7

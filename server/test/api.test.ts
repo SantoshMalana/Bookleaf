@@ -6,6 +6,7 @@ import { __resetDraftState } from '../src/ai/draft.service.js';
 import { MockProvider } from '../src/ai/providers/mock.js';
 import { setProvider } from '../src/ai/providers/index.js';
 import { hub, type TicketEvent } from '../src/realtime/hub.js';
+import { __setBudgetForTests } from '../src/ai/budget.js';
 import { AiCall, Book, Message, Ticket } from '../src/models/index.js';
 import { asAdmin, asAuthor, bearer, connectAndSeed, disconnect, waitForTriage } from './helpers.js';
 
@@ -22,11 +23,13 @@ beforeEach(() => {
   setProvider(new MockProvider());
 });
 
+let ticketSeq = 0;
 async function createTicket(token: string, overrides: Record<string, unknown> = {}) {
   const res = await request(app)
     .post(api('/tickets'))
+    // Unique text per call: identical submissions within two minutes are (deliberately) treated as one ticket.
     .set(bearer(token))
-    .send({ subject: 'No royalty yet', description: "I haven't received any royalty for my book and it has been months.", ...overrides });
+    .send({ subject: 'No royalty yet', description: `I haven't received any royalty for my book and it has been months. (ref ${++ticketSeq})`, ...overrides });
   return res;
 }
 
@@ -294,6 +297,48 @@ describe('ticket authorization & validation', () => {
   });
 });
 
+describe('"was this helpful?" feedback on resolutions', () => {
+  it('can only be given on your own ticket, only once it is resolved; reopening clears it; admins see the rating and aggregate', async () => {
+    const author = await asAuthor(app, 'ananya.reddy@email.com');
+    const other = await asAuthor(app, 'priya.sharma@email.com');
+    const admin = await asAdmin(app);
+    const id = (await createTicket(author)).body.data.id as string;
+    await waitForTriage(id);
+
+    // not resolved yet → 409, nothing stored
+    const early = await request(app).post(api(`/tickets/${id}/feedback`)).set(bearer(author)).send({ helpful: true });
+    expect(early.status).toBe(409);
+    expect(early.body.error.code).toBe('NOT_RESOLVED');
+
+    await request(app).patch(api(`/admin/tickets/${id}`)).set(bearer(admin)).send({ status: 'Resolved' }).expect(200);
+
+    // validation and isolation
+    const bad = await request(app).post(api(`/tickets/${id}/feedback`)).set(bearer(author)).send({ helpful: 'yes' });
+    expect(bad.status).toBe(400);
+    expect((await request(app).post(api(`/tickets/${id}/feedback`)).set(bearer(other)).send({ helpful: true })).status).toBe(404);
+    expect((await request(app).post(api(`/tickets/${id}/feedback`)).set(bearer(admin)).send({ helpful: true })).status).toBe(403);
+
+    // happy path: the author sees their own rating; the admin sees it too
+    const ok = await request(app).post(api(`/tickets/${id}/feedback`)).set(bearer(author)).send({ helpful: false, comment: '  Still unclear about the date.  ' });
+    expect(ok.status).toBe(201);
+    expect(ok.body.data.feedback).toMatchObject({ helpful: false, comment: 'Still unclear about the date.' });
+    const adminView = await request(app).get(api(`/admin/tickets/${id}`)).set(bearer(admin));
+    expect(adminView.body.data.feedback).toMatchObject({ helpful: false });
+    expect(adminView.body.data.messages.some((m: { body: string }) => m.body.includes('rated the resolution: not helpful'))).toBe(true);
+
+    // re-rating replaces it, and the queue stats aggregate it
+    await request(app).post(api(`/tickets/${id}/feedback`)).set(bearer(author)).send({ helpful: true }).expect(201);
+    const stats = await request(app).get(api('/admin/stats')).set(bearer(admin));
+    expect(stats.body.data.feedback.rated).toBeGreaterThanOrEqual(1);
+    expect(stats.body.data.feedback.helpful).toBeGreaterThanOrEqual(1);
+
+    // a follow-up reopens the ticket and starts a fresh resolution: the old rating is gone
+    const follow = await request(app).post(api(`/tickets/${id}/messages`)).set(bearer(author)).send({ body: 'Actually it is still not paid.' });
+    expect(follow.body.data.status).toBe('Open');
+    expect(follow.body.data.feedback).toBeNull();
+  });
+});
+
 describe('graceful degradation when the AI is down', () => {
   it('still creates the ticket, applies rule-based triage, and gives admins a template draft', async () => {
     setProvider(new MockProvider({ failWith: Object.assign(new Error('boom'), { status: 503 }) }));
@@ -422,5 +467,97 @@ describe('security hygiene', () => {
 
   it('counts tickets in the database that match what the API created (sanity)', async () => {
     expect(await Ticket.countDocuments()).toBeGreaterThan(5);
+  });
+});
+
+
+describe('escalation by follow-up message', () => {
+  it('a later legal/fraud threat raises priority to Critical (even over a manual override), recomputes the SLA and is logged; benign follow-ups change nothing', async () => {
+    const author = await asAuthor(app, 'farhan.sheikh@email.com');
+    const admin = await asAdmin(app);
+    const id = (await createTicket(author, { subject: 'Update my bio', description: 'Can I update my author bio on the store page please?' })).body.data.id as string;
+    const t0 = await waitForTriage(id);
+    expect(t0.priority).toBe('Low');
+    const lowDue = t0.slaDueAt!.getTime();
+
+    // benign follow-up: untouched
+    await request(app).post(api(`/tickets/${id}/messages`)).set(bearer(author)).send({ body: 'Thanks, any update on this?' }).expect(201);
+    expect((await Ticket.findById(id).lean())!.priority).toBe('Low');
+
+    // an admin deliberately keeps it Low…
+    await request(app).patch(api(`/admin/tickets/${id}`)).set(bearer(admin)).send({ priority: 'Low' }).expect(200);
+
+    // …then the author escalates
+    await request(app).post(api(`/tickets/${id}/messages`)).set(bearer(author)).send({ body: 'Nobody replies. This is fraud and I will go to the police.' }).expect(201);
+    const t1 = (await Ticket.findById(id).lean())!;
+    expect(t1.priority).toBe('Critical');
+    expect(t1.priorityRank).toBe(4);
+    expect(t1.priorityReason).toMatch(/Follow-up message escalated/);
+    expect(t1.slaDueAt!.getTime()).toBeLessThan(lowDue); // 4h clock instead of 72h
+
+    const detail = await request(app).get(api(`/admin/tickets/${id}`)).set(bearer(admin));
+    expect(detail.body.data.messages.some((m: { body: string }) => /Priority raised Low → Critical automatically/.test(m.body))).toBe(true);
+    // the author never sees internal priority or the event
+    const authorView = await request(app).get(api(`/tickets/${id}`)).set(bearer(author));
+    expect(JSON.stringify(authorView.body)).not.toMatch(/Critical|Priority raised/);
+  });
+
+  it('a follow-up that arrives before triage finishes still counts', async () => {
+    setProvider(new MockProvider({ latencyMs: 150 }));
+    const author = await asAuthor(app, 'farhan.sheikh@email.com');
+    const id = (await createTicket(author, { subject: 'Question', description: 'Quick question about my account please.' })).body.data.id as string;
+    await request(app).post(api(`/tickets/${id}/messages`)).set(bearer(author)).send({ body: 'I am going to take legal action.' }).expect(201);
+    const t = await waitForTriage(id);
+    expect(t.priority).toBe('Critical');
+  });
+});
+
+describe('duplicate submissions', () => {
+  it('an identical ticket from the same author within two minutes is the same ticket (200, no second row); different text or another author is new', async () => {
+    const author = await asAuthor(app, 'priya.sharma@email.com');
+    const other = await asAuthor(app, 'farhan.sheikh@email.com');
+    const payload = { subject: 'Double click test', description: 'This was submitted twice by accident, please only create one ticket.' };
+    const a = await request(app).post(api('/tickets')).set(bearer(author)).send(payload);
+    const b = await request(app).post(api('/tickets')).set(bearer(author)).send(payload);
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(200);
+    expect(b.body.data.id).toBe(a.body.data.id);
+    expect(await Ticket.countDocuments({ subject: 'Double click test' })).toBe(1);
+
+    expect((await request(app).post(api('/tickets')).set(bearer(author)).send({ ...payload, description: `${payload.description} Edited.` })).status).toBe(201);
+    expect((await request(app).post(api('/tickets')).set(bearer(other)).send(payload)).status).toBe(201);
+  });
+});
+
+describe('daily AI budget', () => {
+  it('stops calling the model once today\'s spend reaches the cap, degrades like an outage, and reports it on the usage page', async () => {
+    const provider = new MockProvider();
+    setProvider(provider);
+    const admin = await asAdmin(app);
+    const author = await asAuthor(app, 'farhan.sheikh@email.com');
+    const spend = await AiCall.create({ ticket: null, kind: 'draft', provider: 'mock', model: 'budget-test', status: 'ok', inputTokens: 1, outputTokens: 1, latencyMs: 1, costUsd: 3, error: null });
+    try {
+      __setBudgetForTests(100); // far above today's spend: AI still works
+      const ok = await waitForTriage((await createTicket(author)).body.data.id);
+      expect(ok.triage.status).toBe('done');
+
+      __setBudgetForTests(2); // below the 3 USD already spent today
+      const before = provider.calls.length;
+      const capped = await waitForTriage((await createTicket(author)).body.data.id);
+      expect(capped.triage).toMatchObject({ status: 'fallback', error: 'budget_exceeded' });
+      expect(provider.calls.length).toBe(before); // the provider was not called at all
+      expect(capped.category).toBe('Royalty & Payments'); // rules still triage it
+
+      const usage = await request(app).get(api('/admin/ai/usage')).set(bearer(admin));
+      expect(usage.body.data.budget).toMatchObject({ dailyUsd: 2 });
+      expect(usage.body.data.budget.spentTodayUsd).toBeGreaterThanOrEqual(3);
+      expect(usage.body.data.failureReasons.some((r: { reason: string }) => r.reason === 'budget_exceeded')).toBe(true);
+
+      __setBudgetForTests(0); // 0 = no cap
+      expect((await waitForTriage((await createTicket(author)).body.data.id)).triage.status).toBe('done');
+    } finally {
+      __setBudgetForTests(null);
+      await AiCall.deleteOne({ _id: spend._id });
+    }
   });
 });

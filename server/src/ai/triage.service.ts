@@ -15,7 +15,7 @@ import { applyPriorityPolicy } from '../domain/priority-policy.js';
 import { computeSlaDueAt } from '../domain/sla.js';
 import { hub } from '../realtime/hub.js';
 import { logEvent } from '../modules/tickets/activity.js';
-import { Ticket } from '../models/index.js';
+import { Message, Ticket } from '../models/index.js';
 import { runStructured } from './ai-client.js';
 import { loadTicketContext } from './context-loader.js';
 import { buildTriageContext } from './context.js';
@@ -40,7 +40,6 @@ export async function triageTicket(ticketId: string): Promise<void> {
   const royaltyOverdue = (ctx.ticketBook ? [ctx.ticketBook] : ctx.books).some(
     (b) => getPayoutInfo(b, pendingTotal, ctx.now).state === 'overdue',
   );
-  const text = `${ticket.subject}\n${ticket.description}`;
 
   let category;
   let aiPriority;
@@ -73,6 +72,10 @@ export async function triageTicket(ticketId: string): Promise<void> {
     rationale = fb.rationale;
   }
 
+  // Floors look at everything the author has said so far. Read *after* the model call (which can take seconds), so a
+  // follow-up that arrived while the model was thinking is not lost.
+  const followUps = await Message.find({ ticket: ticket._id, kind: 'public', senderRole: 'author' }).select('body').lean();
+  const text = [ticket.subject, ticket.description, ...followUps.map((m) => m.body)].join('\n');
   const policy = applyPriorityPolicy({ category, aiPriority, text, royaltyOverdue });
   const priorityReason = [rationale, ...policy.floors.map((f) => `Policy: ${f}`)].join(' ');
 

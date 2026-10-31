@@ -23,7 +23,7 @@ export interface LlmProvider {
   callStructured(req: LlmRequest): Promise<LlmResult>;
 }
 
-export type AiFailureReason = 'not_configured' | 'circuit_open' | 'rate_limited' | 'timeout' | 'auth' | 'provider_error' | 'invalid_output';
+export type AiFailureReason = 'not_configured' | 'circuit_open' | 'rate_limited' | 'timeout' | 'auth' | 'provider_error' | 'invalid_output' | 'budget_exceeded';
 
 /** Anything that stops the AI path; callers degrade gracefully instead of failing the request. */
 export class AiUnavailableError extends Error {

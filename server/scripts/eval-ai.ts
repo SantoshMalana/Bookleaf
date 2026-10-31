@@ -4,6 +4,7 @@
  *
  *   npm run eval:ai              # uses the configured LLM (ANTHROPIC_API_KEY / OPENAI_API_KEY)
  *   npm run eval:ai -- --fallback  # evaluates the rule-based fallback classifier instead
+ *   npm run eval:ai -- --set heldout   # the held-out set (24 cases never used for prompt tuning)
  *
  * Reports category accuracy, priority accuracy (exact and within one level), token usage and an
  * estimated cost per 1,000 tickets — the numbers to quote when discussing quality vs. cost, and a
@@ -20,7 +21,10 @@ import { applyPriorityPolicy } from '../src/domain/priority-policy.js';
 import type { Category, Priority } from '../src/config/constants.js';
 
 interface Case { id: string; subject: string; description: string; category: Category; priority: Priority }
-const cases: Case[] = JSON.parse(readFileSync(new URL('./eval/cases.json', import.meta.url), 'utf8'));
+// `--set heldout` scores eval/heldout.json: cases written *after* the prompts were tuned and never used to tune them.
+const setName = process.argv.includes('--set') ? process.argv[process.argv.indexOf('--set') + 1] : 'cases';
+if (setName !== 'cases' && setName !== 'heldout') throw new Error(`Unknown --set "${setName}" (use cases | heldout)`);
+const cases: Case[] = JSON.parse(readFileSync(new URL(`./eval/${setName}.json`, import.meta.url), 'utf8'));
 const rank: Record<Priority, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 };
 const useFallback = process.argv.includes('--fallback');
 
@@ -33,7 +37,7 @@ if (!useFallback && !provider) {
 const pad = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s.padEnd(n));
 let catOk = 0, prioExact = 0, prioNear = 0, inTok = 0, outTok = 0, failures = 0;
 
-console.log(`\nTriage evaluation — ${useFallback ? 'rule-based fallback' : `${provider!.name}/${provider!.model}`} — ${cases.length} cases\n`);
+console.log(`\nTriage evaluation (${setName}) — ${useFallback ? 'rule-based fallback' : `${provider!.name}/${provider!.model}`} — ${cases.length} cases\n`);
 console.log(`${pad('case', 22)} ${pad('expected', 34)} ${pad('got', 34)} ok`);
 
 for (const c of cases) {

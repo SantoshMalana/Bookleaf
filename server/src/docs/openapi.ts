@@ -99,6 +99,7 @@ export const openApiSpec = {
           id: { type: 'string' }, ticketId: { type: 'string', example: 'BL-1004' }, number: { type: 'integer' }, subject: { type: 'string' }, description: { type: 'string' },
           status: { type: 'string', enum: [...STATUSES] }, book: { type: 'object', nullable: true }, attachments: { type: 'array', items: { type: 'object' } },
           createdAt: { type: 'string', format: 'date-time' }, lastActivityAt: { type: 'string', format: 'date-time' }, replyCount: { type: 'integer' },
+          feedback: { type: 'object', nullable: true, description: 'The author\'s rating of the resolution', properties: { helpful: { type: 'boolean' }, comment: { type: 'string', nullable: true }, at: { type: 'string', format: 'date-time' } } },
           messages: { type: 'array', items: ref('Message') },
         },
       },
@@ -154,12 +155,12 @@ export const openApiSpec = {
     '/tickets': {
       get: { tags: ['Tickets (author)'], summary: 'My tickets (author) — admins receive the admin representation of all tickets', security: AUTHED, parameters: ticketFilters, responses: { '200': resp('OK', { type: 'object', properties: { items: { type: 'array', items: ref('AuthorTicket') }, meta: ref('Pagination') } }), '400': err('ValidationError'), ...common } },
       post: {
-        tags: ['Tickets (author)'], summary: 'Raise a support ticket (author only). Returns immediately; AI triage runs asynchronously.', security: AUTHED,
+        tags: ['Tickets (author)'], summary: 'Raise a support ticket (author only). Returns immediately; AI triage runs asynchronously. Idempotent: an identical submission (same book, subject and text) from the same author within 2 minutes returns the existing ticket with 200 instead of creating a duplicate.', security: AUTHED,
         requestBody: body({
           type: 'object', required: ['subject', 'description'],
           properties: { bookId: { type: 'string', nullable: true, description: 'Omit/null for General / Account Level' }, subject: { type: 'string', maxLength: 150 }, description: { type: 'string', minLength: 10, maxLength: 4000 }, attachments: { type: 'array', maxItems: 5, items: { type: 'object', properties: { name: { type: 'string' }, size: { type: 'integer' }, type: { type: 'string' } } }, description: 'UI-only: metadata is stored, files are not' } },
         }),
-        responses: { '201': resp('Created', data(ref('AuthorTicket'))), '400': err('ValidationError'), '404': err('NotFound'), ...admin },
+        responses: { '201': resp('Created', data(ref('AuthorTicket'))), '200': resp('Duplicate submission — the existing ticket', data(ref('AuthorTicket'))), '400': err('ValidationError'), '404': err('NotFound'), ...admin },
       },
     },
     '/tickets/{ticketId}': {
@@ -170,6 +171,13 @@ export const openApiSpec = {
         tags: ['Tickets (author)'], summary: 'Author follow-up on their own ticket (reopens a Resolved ticket; Closed tickets return 409)', security: AUTHED,
         parameters: [idParam('ticketId', 'Ticket id')], requestBody: body({ type: 'object', required: ['body'], properties: { body: { type: 'string', maxLength: 4000 } } }),
         responses: { '201': resp('Created', data(ref('AuthorTicket'))), '400': err('ValidationError'), '404': err('NotFound'), '409': resp('Ticket is closed', ref('Error')), ...admin },
+      },
+    },
+    '/tickets/{ticketId}/feedback': {
+      post: {
+        tags: ['Tickets (author)'], summary: 'Rate a resolution ("Was this helpful?"). Own tickets only, and only once Resolved or Closed (otherwise 409). Re-rating replaces the earlier rating.', security: AUTHED,
+        parameters: [idParam('ticketId', 'Ticket id')], requestBody: body({ type: 'object', required: ['helpful'], properties: { helpful: { type: 'boolean' }, comment: { type: 'string', maxLength: 500 } } }),
+        responses: { '201': resp('Created', data(ref('AuthorTicket'))), '400': err('ValidationError'), '404': err('NotFound'), '409': resp('Ticket not resolved yet', ref('Error')), ...admin },
       },
     },
     '/events': {

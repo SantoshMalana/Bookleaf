@@ -1,6 +1,7 @@
 import { AiCall, Message, Ticket } from '../models/index.js';
 import { aiStatus } from './ai-client.js';
 import { env } from '../config/env.js';
+import { dailyBudgetUsd, spentTodayUsd } from './budget.js';
 
 /** Aggregates behind the admin "AI usage" page — evidence of cost awareness and degradation behaviour. */
 export async function getAiUsage(days = 30) {
@@ -67,6 +68,7 @@ export async function getAiUsage(days = 30) {
   return {
     windowDays: days,
     config: { ...aiStatus(), priceInPerMTok: env.llm.priceInPerMTok, priceOutPerMTok: env.llm.priceOutPerMTok },
+    budget: { dailyUsd: dailyBudgetUsd(), spentTodayUsd: await spentTodayUsd() },
     totals: {
       successfulCalls: sum(okRows, 'calls'),
       inputTokens: sum(okRows, 'inputTokens'),

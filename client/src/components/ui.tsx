@@ -1,8 +1,8 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import clsx, { type ClassValue } from 'clsx';
-import { Bot, CircleDot, Loader2, Sparkles, UserRound, Wand2 } from 'lucide-react';
+import { Bot, Check, CircleDot, Loader2, Sparkles, UserRound, Wand2 } from 'lucide-react';
 import type { LiveState } from '../lib/realtime';
-import type { Priority, Source, Status } from '../lib/types';
+import { STATUSES, type Priority, type Source, type Status } from '../lib/types';
 
 export const cx = (...v: ClassValue[]) => clsx(v);
 
@@ -47,8 +47,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
 // ───────────── layout atoms ─────────────
 
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cx('rounded-2xl border border-line bg-card shadow-[0_2px_12px_-4px_rgba(47,46,46,0.08)]', className)}>{children}</section>;
+export function Card({ children, className, lift }: { children: ReactNode; className?: string; lift?: boolean }) {
+  return (
+    <section
+      className={cx(
+        'rounded-2xl border border-line bg-card shadow-[0_2px_12px_-4px_rgba(47,46,46,0.08)]',
+        lift && 'transition duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[0_14px_30px_-14px_rgba(214,59,82,0.35)]',
+        className,
+      )}
+    >
+      {children}
+    </section>
+  );
 }
 
 export function CardHeader({ title, action, subtitle }: { title: ReactNode; action?: ReactNode; subtitle?: ReactNode }) {
@@ -82,13 +92,22 @@ export function StatTile({ label, value, hint, tone = 'default', onClick, active
       onClick={onClick}
       className={cx(
         'rounded-2xl border bg-card px-4 py-3.5 text-left shadow-[0_2px_12px_-4px_rgba(47,46,46,0.08)]',
-        onClick && 'transition hover:border-brand-300 hover:shadow-md hover:shadow-brand-500/10',
+        onClick ? 'transition duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md hover:shadow-brand-500/10' : 'transition-shadow hover:shadow-[0_6px_18px_-8px_rgba(47,46,46,0.18)]',
         active ? 'border-brand-500 ring-2 ring-brand-200' : 'border-line',
       )}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold tracking-wide text-muted uppercase">{label}</p>
-        {icon && <span className="grid size-8 place-items-center rounded-full bg-brand-100 text-brand-600 [&>svg]:size-4">{icon}</span>}
+        {icon && (
+          <span
+            className={cx(
+              'grid size-9 place-items-center rounded-full [&>svg]:size-[18px]',
+              tone === 'warn' ? 'bg-amber-soft text-amber-ink' : tone === 'danger' ? 'bg-clay-soft text-clay' : tone === 'good' ? 'bg-ok-50 text-ok-700' : 'bg-brand-100 text-brand-600',
+            )}
+          >
+            {icon}
+          </span>
+        )}
       </div>
       <p className={cx('mt-1 text-[28px] leading-none font-extrabold', tone === 'danger' && 'text-clay', tone === 'warn' && 'text-amber-ink', tone === 'good' && 'text-ok-700')}>{value}</p>
       {hint && <p className="mt-1.5 text-xs text-muted">{hint}</p>}
@@ -134,7 +153,7 @@ export const PriorityBadge = ({ priority }: { priority: Priority }) => (
 );
 
 /** Where a category/priority value came from: AI, rule-based fallback, an admin override, or a seeded preset. */
-export function SourceChip({ source, detail }: { source: Source; detail?: string }) {
+export function SourceChip({ source, detail, compact }: { source: Source; detail?: string; compact?: boolean }) {
   const map: Record<Source, { label: string; icon: ReactNode; tone: Tone; title: string }> = {
     ai: { label: 'AI', icon: <Sparkles className="size-3" />, tone: 'brand', title: detail ?? 'Classified by the AI model' },
     fallback: { label: 'Rules', icon: <Wand2 className="size-3" />, tone: 'amber', title: 'AI was unavailable — rule-based guess, please review' },
@@ -143,11 +162,44 @@ export function SourceChip({ source, detail }: { source: Source; detail?: string
     pending: { label: 'Triaging…', icon: <Loader2 className="size-3 animate-spin" />, tone: 'sky', title: 'AI triage in progress' },
   };
   const m = map[source];
+  // In dense tables, demo-seed values add noise, and the other sources are shown as a quiet inline tag.
+  if (compact && source === 'seed') return null;
   return (
-    <Badge tone={m.tone} title={m.title}>
+    <Badge tone={m.tone} title={m.title} className={compact ? 'px-1.5 py-0 text-[11px]' : undefined}>
       {m.icon}
       {m.label}
     </Badge>
+  );
+}
+
+/** Open → In Progress → Resolved → Closed, with the current step highlighted. Shown to authors so a ticket never feels like a black box. */
+export function StatusStepper({ status }: { status: Status }) {
+  const idx = STATUSES.indexOf(status);
+  return (
+    <ol className="flex items-center" aria-label={`Ticket progress: ${status}`}>
+      {STATUSES.map((s, i) => {
+        const done = i < idx;
+        const current = i === idx;
+        return (
+          <li key={s} className={cx('flex items-center', i < STATUSES.length - 1 && 'flex-1')} aria-current={current ? 'step' : undefined}>
+            <span className="flex flex-col items-center gap-1.5">
+              <span
+                className={cx(
+                  'grid size-8 place-items-center rounded-full border-2 text-xs font-extrabold transition-colors',
+                  done && 'border-brand-500 bg-brand-500 text-white',
+                  current && 'border-brand-600 bg-white text-brand-700 ring-4 ring-brand-100',
+                  !done && !current && 'border-line-strong bg-white text-faint',
+                )}
+              >
+                {done ? <Check className="size-4" strokeWidth={3} /> : i + 1}
+              </span>
+              <span className={cx('text-[12px] whitespace-nowrap', current ? 'font-extrabold text-brand-700' : done ? 'font-semibold text-ink' : 'text-faint')}>{s}</span>
+            </span>
+            {i < STATUSES.length - 1 && <span className={cx('mx-2 mb-5 h-0.5 flex-1 rounded-full', i < idx ? 'bg-brand-500' : 'bg-line-strong')} />}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

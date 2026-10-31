@@ -1,5 +1,5 @@
 import type { Category, Priority, Source, Status } from '../../config/constants.js';
-import type { IAttachment, IDraft, IMessage, ITicket, ITriage } from '../../models/index.js';
+import type { IAttachment, IDraft, IFeedback, IMessage, ITicket, ITriage } from '../../models/index.js';
 import { presentDraft } from '../../ai/draft.service.js';
 
 /** A ticket with author / book / assignee populated (lean). */
@@ -33,6 +33,8 @@ const toMessage = (m: IMessage, includeAdminFields: boolean): MessageDto => ({
 
 // ───────────── author-facing (no AI fields, no internal notes, no priority) ─────────────
 
+const toFeedback = (f: IFeedback | null | undefined) => (f ? { helpful: f.helpful, comment: f.comment, at: f.at } : null);
+
 export interface AuthorTicketDto {
   id: string;
   ticketId: string;
@@ -47,6 +49,8 @@ export interface AuthorTicketDto {
   lastActivityAt: Date;
   /** Admin replies on the ticket (used for the "reply received" badge in lists). */
   replyCount: number;
+  /** The author's own rating of the resolution, if they gave one. */
+  feedback: { helpful: boolean; comment: string | null; at: Date } | null;
   messages?: MessageDto[];
 }
 
@@ -64,6 +68,7 @@ export function toAuthorTicket(t: PopulatedTicket, messages?: IMessage[], replyC
     updatedAt: t.updatedAt,
     lastActivityAt: t.lastActivityAt,
     replyCount,
+    feedback: toFeedback(t.feedback),
     // Defence in depth: even if a caller passed internal rows, only public ones are serialized.
     ...(messages ? { messages: messages.filter((m) => m.kind === 'public').map((m) => toMessage(m, false)) } : {}),
   };
@@ -94,6 +99,7 @@ export interface AdminTicketDto {
   isOverdue: boolean;
   firstResponseAt: Date | null;
   resolvedAt: Date | null;
+  feedback: { helpful: boolean; comment: string | null; at: Date } | null;
   createdAt: Date;
   lastActivityAt: Date;
   messages?: MessageDto[];
@@ -128,6 +134,7 @@ export function toAdminTicket(
     isOverdue: Boolean(t.isActive && t.slaDueAt && t.slaDueAt < now),
     firstResponseAt: t.firstResponseAt,
     resolvedAt: t.resolvedAt,
+    feedback: toFeedback(t.feedback),
     createdAt: t.createdAt,
     lastActivityAt: t.lastActivityAt,
     ...(opts.messages ? { messages: opts.messages.map((m) => toMessage(m, true)) } : {}),

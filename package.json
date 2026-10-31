@@ -16,7 +16,9 @@
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
     "eval:ai": "npm run eval:ai -w server",
     "test:e2e": "npm run build -w client && playwright test -c e2e/playwright.config.ts",
-    "test:e2e:report": "playwright show-report e2e/report"
+    "test:e2e:report": "playwright show-report e2e/report",
+    "eval:drafts": "npm run eval:drafts -w server",
+    "eval:heldout": "npm run eval:ai -w server -- --set heldout"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, ArrowLeft, CheckCheck, Clock, Lock, RefreshCw, Send, Sparkles, UserCheck, UserMinus, Wand2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCheck, Clock, Lock, MessageSquareText, RefreshCw, Send, Sparkles, ThumbsDown, ThumbsUp, UserCheck, UserMinus, Wand2 } from 'lucide-react';
 import { prettyDates, ProductionTracker } from '../../components/BookCard';
 import { TicketThread } from '../../components/TicketThread';
 import { Badge, Button, Card, CardHeader, cx, EmptyState, ErrorBanner, inputCls, PriorityBadge, Skeleton, SourceChip, StatusBadge } from '../../components/ui';
 import { api, ApiError } from '../../lib/api';
-import { dateTime, day, inr, slaLabel } from '../../lib/format';
+import { dateTime, day, firstName, inr, slaLabel } from '../../lib/format';
+import { fillSnippet, SNIPPETS } from '../../lib/snippets';
 import { POLL_MS } from '../../lib/query-client';
 import { markOwnAction } from '../../lib/realtime';
 import { useToast } from '../../lib/toast';
@@ -187,16 +188,39 @@ export default function AdminTicketDetail() {
                 ) : (
                   <>
                     <DraftPanel draft={draft} loading={gen.isPending} error={draftError} wanted={wantDraft} onRegenerate={() => gen.mutate(true)} onReset={draft ? () => { setReply(draft.body); setUsedDraft(true); touched.current = false; } : undefined} />
+                    <div className="flex flex-wrap items-center gap-1.5" aria-label="Quick replies">
+                      <span className="mr-1 flex items-center gap-1 text-xs font-bold text-muted"><MessageSquareText className="size-3.5" /> Quick replies</span>
+                      {SNIPPETS.map((sn) => (
+                        <button
+                          key={sn.id}
+                          type="button"
+                          className="rounded-full border border-line-strong bg-white px-3 py-1 text-xs font-semibold text-ink transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+                          onClick={() => {
+                            const text = fillSnippet(sn, { name: firstName(t.author.name), book: t.book?.title ?? null });
+                            setReply((cur) => (cur.trim() ? `${cur.replace(/\s+$/, '')}\n\n${text}` : text));
+                            touched.current = true;
+                          }}
+                        >
+                          {sn.label}
+                        </button>
+                      ))}
+                    </div>
                     <textarea
                       className={cx(inputCls, 'min-h-[200px] leading-relaxed')}
                       value={reply}
                       onChange={(e) => { setReply(e.target.value); touched.current = true; }}
+                      onKeyDown={(e) => {
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && reply.trim() && !send.isPending) {
+                          e.preventDefault();
+                          send.mutate(undefined);
+                        }
+                      }}
                       placeholder={gen.isPending ? 'Drafting a reply…' : 'Write a reply to the author…'}
                       maxLength={8000}
                       aria-label="Reply to author"
                     />
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-xs text-muted">The author sees this on their ticket immediately. Review all facts before sending.</p>
+                      <p className="text-xs text-muted">The author sees this on their ticket immediately. Review all facts before sending. <kbd className="rounded border border-line-strong bg-paper px-1 py-0.5 font-sans text-[11px]">Ctrl</kbd>+<kbd className="rounded border border-line-strong bg-paper px-1 py-0.5 font-sans text-[11px]">Enter</kbd> sends.</p>
                       <div className="flex gap-2">
                         <Button variant="secondary" disabled={!reply.trim()} loading={send.isPending && send.variables === 'Resolved'} onClick={() => send.mutate('Resolved')} icon={<CheckCheck className="size-4" />}>Send &amp; resolve</Button>
                         <Button disabled={!reply.trim()} loading={send.isPending && send.variables !== 'Resolved'} onClick={() => send.mutate(undefined)} icon={<Send className="size-4" />}>Send reply</Button>
@@ -208,7 +232,7 @@ export default function AdminTicketDetail() {
             ) : (
               <div className="space-y-3 p-5">
                 <p className="flex items-center gap-2 rounded-lg bg-amber-soft px-3 py-2 text-xs text-amber-ink"><Lock className="size-3.5" /> Internal notes are only visible to the BookLeaf team — never to the author.</p>
-                <textarea className={inputCls} rows={5} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Checked with finance — payout batch runs on the 14th." maxLength={4000} aria-label="Internal note" />
+                <textarea className={inputCls} rows={5} value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && note.trim() && !addNote.isPending) { e.preventDefault(); addNote.mutate(); } }} placeholder="e.g. Checked with finance — payout batch runs on the 14th." maxLength={4000} aria-label="Internal note" />
                 <div className="flex justify-end"><Button variant="secondary" disabled={!note.trim()} loading={addNote.isPending} onClick={() => addNote.mutate()}>Save note</Button></div>
               </div>
             )}
@@ -269,6 +293,19 @@ export default function AdminTicketDetail() {
               </dl>
             </div>
           </Card>
+
+          {t.feedback && (
+            <Card>
+              <CardHeader title="Author feedback" action={<span className="text-xs text-muted">{dateTime(t.feedback.at)}</span>} />
+              <div className="space-y-2 p-5 text-sm">
+                <p className={cx('flex items-center gap-2 font-bold', t.feedback.helpful ? 'text-ok-700' : 'text-clay')}>
+                  {t.feedback.helpful ? <ThumbsUp className="size-4" /> : <ThumbsDown className="size-4" />}
+                  {t.feedback.helpful ? 'Found the answer helpful' : 'Did not find the answer helpful'}
+                </p>
+                {t.feedback.comment && <p className="rounded-lg bg-paper px-3 py-2 text-muted">&ldquo;{t.feedback.comment}&rdquo;</p>}
+              </div>
+            </Card>
+          )}
 
           <Card>
             <CardHeader title="Author" />

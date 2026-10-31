@@ -13,6 +13,15 @@ function createProvider(): LlmProvider | null {
       return env.ANTHROPIC_API_KEY ? new AnthropicProvider(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL, opts) : null;
     case 'openai':
       return env.OPENAI_API_KEY ? new OpenAiProvider(env.OPENAI_API_KEY, env.OPENAI_MODEL, opts) : null;
+    case 'groq':
+      return env.GROQ_API_KEY
+        ? new OpenAiProvider(env.GROQ_API_KEY, env.GROQ_MODEL, {
+            ...opts,
+            name: 'groq',
+            baseURL: 'https://api.groq.com/openai/v1',
+            reasoning: { effort: env.GROQ_REASONING_EFFORT, headroomTokens: 1024 },
+          })
+        : null;
     case 'mock':
       return new MockProvider();
     default:

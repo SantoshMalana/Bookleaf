@@ -34,6 +34,7 @@ export function applyStatus(ticket: TicketDoc, status: Status, now = new Date())
   if (ticket.isActive) {
     ticket.resolvedAt = null;
     ticket.closedAt = null;
+    ticket.feedback = null;
     if (status === 'Open' && !ticket.awaitingResponseSince) ticket.awaitingResponseSince = now;
   } else {
     ticket.awaitingResponseSince = null;
@@ -151,7 +152,7 @@ export async function getQueueStats(admin: AuthContext) {
   const now = new Date();
   const since = new Date(now.getTime() - 30 * 86_400_000);
 
-  const [statusRows, priorityRows, overdue, unassigned, mine, awaiting, firstResponse] = await Promise.all([
+  const [statusRows, priorityRows, overdue, unassigned, mine, awaiting, firstResponse, feedbackRows] = await Promise.all([
     Ticket.aggregate<{ _id: Status; n: number }>([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
     Ticket.aggregate<{ _id: string; n: number }>([{ $match: { isActive: true } }, { $group: { _id: '$priority', n: { $sum: 1 } } }]),
     Ticket.countDocuments({ isActive: true, slaDueAt: { $lt: now } }),
@@ -161,6 +162,10 @@ export async function getQueueStats(admin: AuthContext) {
     Ticket.aggregate<{ avgMs: number }>([
       { $match: { createdAt: { $gte: since }, firstResponseAt: { $ne: null } } },
       { $group: { _id: null, avgMs: { $avg: { $subtract: ['$firstResponseAt', '$createdAt'] } } } },
+    ]),
+    Ticket.aggregate<{ _id: null; rated: number; helpful: number }>([
+      { $match: { feedback: { $ne: null } } },
+      { $group: { _id: null, rated: { $sum: 1 }, helpful: { $sum: { $cond: ['$feedback.helpful', 1, 0] } } } },
     ]),
   ]);
 
@@ -175,6 +180,7 @@ export async function getQueueStats(admin: AuthContext) {
     unassigned,
     assignedToMe: mine,
     awaitingResponse: awaiting,
+    feedback: { rated: feedbackRows[0]?.rated ?? 0, helpful: feedbackRows[0]?.helpful ?? 0 },
     avgFirstResponseHours: firstResponse[0] ? Math.round((firstResponse[0].avgMs / 3_600_000) * 10) / 10 : null,
   };
 }

@@ -12,6 +12,7 @@ import type { ZodType, ZodTypeDef } from 'zod';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
 import { AiCall } from '../models/index.js';
+import { budgetExhausted, noteSpend } from './budget.js';
 import { CircuitBreaker } from './circuit-breaker.js';
 import { AiUnavailableError, getProvider, type LlmProvider } from './providers/index.js';
 import type { AiFailureReason, LlmRequest } from './providers/types.js';
@@ -94,6 +95,12 @@ export async function runStructured<T>(args: {
     throw new AiUnavailableError('circuit_open', 'AI temporarily paused after repeated failures');
   }
 
+  if (await budgetExhausted()) {
+    logger.warn({ kind: args.kind }, 'daily AI budget reached — using fallback until the next UTC day');
+    await record({ ticketId: args.ticketId, kind: args.kind, provider, status: 'skipped', error: 'budget_exceeded' });
+    throw new AiUnavailableError('budget_exceeded', 'Daily AI budget reached');
+  }
+
   const started = Date.now();
   let result;
   try {
@@ -127,6 +134,7 @@ export async function runStructured<T>(args: {
   }
 
   breaker.success();
+  noteSpend(costOf(result.inputTokens, result.outputTokens));
   await record({
     ticketId: args.ticketId,
     kind: args.kind,

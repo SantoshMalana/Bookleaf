@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, BookOpen, CircleDollarSign, Hourglass, Library, MessageSquarePlus, Ticket } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarClock, CircleDollarSign, Hourglass, Library, MessageSquarePlus, Receipt, Ticket } from 'lucide-react';
 import { Card, CardHeader, EmptyState, ErrorBanner, PageHeader, Skeleton, StatTile, StatusBadge, Button } from '../../components/ui';
 import { api } from '../../lib/api';
 import { ago, day, firstName, inr } from '../../lib/format';
 import { POLL_MS } from '../../lib/query-client';
-import type { AuthorTicket, Me, Page } from '../../lib/types';
+import type { AuthorTicket, Book, Me, Page } from '../../lib/types';
 
 export default function Dashboard() {
   const me = useQuery({ queryKey: ['me'], queryFn: () => api.get<{ data: Me }>('/me').then((r) => r.data) });
@@ -14,6 +14,8 @@ export default function Dashboard() {
     queryFn: () => api.get<Page<AuthorTicket>>('/tickets?limit=4&sort=activity'),
     refetchInterval: POLL_MS,
   });
+
+  const books = useQuery({ queryKey: ['books'], queryFn: () => api.get<{ data: Book[] }>('/books').then((r) => r.data) });
 
   if (me.isError) return <ErrorBanner message="We couldn't load your dashboard." onRetry={() => void me.refetch()} />;
   const d = me.data;
@@ -30,7 +32,7 @@ export default function Dashboard() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         {!d ? (
           Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-[92px]" />)
         ) : (
@@ -61,7 +63,8 @@ export default function Dashboard() {
         </p>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="mt-6 grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-5">
         <Card>
           <CardHeader
             title="Recent tickets"
@@ -98,17 +101,79 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader title="Quick links" />
-          <div className="space-y-1 p-3">
-            <Link to="/books" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-paper">
-              <BookOpen className="size-4 text-brand-600" /> View my books &amp; royalties
-            </Link>
-            <Link to="/tickets/new" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-paper">
-              <MessageSquarePlus className="size-4 text-brand-600" /> Ask a question
-            </Link>
-          </div>
-          <p className="border-t border-line px-5 py-3 text-xs text-muted">Royalties are paid within 45 days of each quarter end, once your balance reaches ₹1,000.</p>
+          <CardHeader
+            title="Your books"
+            action={
+              <Link to="/books" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">
+                Details <ArrowRight className="size-3.5" />
+              </Link>
+            }
+          />
+          {books.isLoading ? (
+            <div className="space-y-3 p-5"><Skeleton className="h-12" /></div>
+          ) : books.data?.length ? (
+            <ul className="divide-y divide-line">
+              {books.data.slice(0, 4).map((b) => (
+                <li key={b.id}>
+                  <Link to="/books" className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-brand-50/50">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700"><BookOpen className="size-5" /></span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold">{b.title}</p>
+                      <p className="truncate text-sm text-muted">{b.genre} · {b.isLive ? `${b.totalCopiesSold} copies sold` : b.production.stage}</p>
+                    </div>
+                    {b.isLive ? (
+                      <div className="text-right">
+                        <p className="flex items-center justify-end gap-1 text-[11px] font-bold tracking-wide text-muted uppercase"><Receipt className="size-3" /> Pending</p>
+                        <p className={b.royaltyPending > 0 ? 'font-extrabold text-amber-ink' : 'font-extrabold'}>{inr(b.royaltyPending)}</p>
+                      </div>
+                    ) : (
+                      <span className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">In production</span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="px-5 py-8 text-center text-sm text-muted">Your books will appear here once they are registered.</p>
+          )}
         </Card>
+        </div>
+
+        <div className="space-y-5">
+          <Card>
+            <CardHeader title="Quick links" />
+            <div className="space-y-1 p-3">
+              <Link to="/books" className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-brand-50">
+                <span className="grid size-8 place-items-center rounded-full bg-brand-100 text-brand-600"><BookOpen className="size-4" /></span>
+                <span className="flex-1">View my books &amp; royalties</span>
+                <ArrowRight className="size-4 text-faint transition group-hover:translate-x-0.5 group-hover:text-brand-600" />
+              </Link>
+              <Link to="/tickets/new" className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-brand-50">
+                <span className="grid size-8 place-items-center rounded-full bg-brand-100 text-brand-600"><MessageSquarePlus className="size-4" /></span>
+                <span className="flex-1">Ask a question</span>
+                <ArrowRight className="size-4 text-faint transition group-hover:translate-x-0.5 group-hover:text-brand-600" />
+              </Link>
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <div className="bg-gradient-to-br from-brand-50 to-brand-100 px-5 py-4">
+              <p className="flex items-center gap-2 text-sm font-extrabold text-brand-800"><CalendarClock className="size-4" /> How royalties are paid</p>
+            </div>
+            <ol className="space-y-3 px-5 py-4 text-sm">
+              {[
+                ['Quarterly', 'Royalties are calculated every quarter.'],
+                ['Within 45 days', 'Paid by bank transfer after each quarter ends.'],
+                ['₹1,000 minimum', 'Smaller balances roll over to the next quarter.'],
+              ].map(([h, t], i) => (
+                <li key={h} className="flex gap-3">
+                  <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-brand-600 text-[11px] font-extrabold text-white">{i + 1}</span>
+                  <span><b className="font-extrabold">{h}.</b> <span className="text-muted">{t}</span></span>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        </div>
       </div>
     </>
   );

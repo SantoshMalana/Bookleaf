@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Paperclip, Send } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { TicketThread } from '../../components/TicketThread';
-import { Button, Card, CardHeader, EmptyState, ErrorBanner, inputCls, Skeleton, StatusBadge } from '../../components/ui';
+import { Button, Card, cx, CardHeader, EmptyState, ErrorBanner, inputCls, Skeleton, StatusBadge, StatusStepper } from '../../components/ui';
 import { api, ApiError } from '../../lib/api';
 import { dateTime, fileSize } from '../../lib/format';
 import { POLL_MS } from '../../lib/query-client';
@@ -16,6 +16,8 @@ export default function TicketDetail() {
   const qc = useQueryClient();
   const toast = useToast();
   const [body, setBody] = useState('');
+  const [askWhy, setAskWhy] = useState(false);
+  const [comment, setComment] = useState('');
 
   const q = useQuery({
     queryKey: ['ticket', ticketId],
@@ -33,6 +35,17 @@ export default function TicketDetail() {
       void qc.invalidateQueries({ queryKey: ['tickets'] });
     },
     onError: (e) => toast.push({ tone: 'error', title: 'Could not send your message', body: e instanceof ApiError ? e.message : undefined }),
+  });
+
+  const rate = useMutation({
+    mutationFn: (v: { helpful: boolean; comment?: string }) => api.post(`/tickets/${ticketId}/feedback`, v),
+    onSuccess: () => {
+      setAskWhy(false);
+      setComment('');
+      void qc.invalidateQueries({ queryKey: ['ticket', ticketId] });
+      toast.push({ tone: 'success', title: 'Thanks for the feedback' });
+    },
+    onError: (e) => toast.push({ tone: 'error', title: 'Could not save your feedback', body: e instanceof ApiError ? e.message : undefined }),
   });
 
   if (q.isError) {
@@ -64,12 +77,49 @@ export default function TicketDetail() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_280px]">
         <div className="space-y-5">
+          <Card className="px-6 pt-5 pb-3">
+            <StatusStepper status={t.status} />
+          </Card>
           <Card className="p-5">
             <TicketThread viewer="author" firstMessage={{ name: 'You', body: t.description, at: t.createdAt }} messages={t.messages ?? []} />
             {awaiting && t.status === 'Open' && (
               <p className="mt-5 rounded-lg bg-sky-soft px-4 py-3 text-sm text-sky-ink">We&apos;ve received your query. A member of the team will reply here — you don&apos;t need to refresh this page.</p>
             )}
           </Card>
+
+          {(t.status === 'Resolved' || t.status === 'Closed') && (
+            <Card className="p-5">
+              {t.feedback && !askWhy ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="flex items-center gap-2.5 text-[15px] font-bold">
+                    <span className={cx('grid size-9 place-items-center rounded-full', t.feedback.helpful ? 'bg-ok-50 text-ok-700' : 'bg-clay-soft text-clay')}>
+                      {t.feedback.helpful ? <ThumbsUp className="size-4" /> : <ThumbsDown className="size-4" />}
+                    </span>
+                    Thanks — you said this was {t.feedback.helpful ? 'helpful' : 'not helpful'}.
+                  </p>
+                  <button className="text-sm font-bold text-brand-700 hover:underline" onClick={() => rate.mutate({ helpful: !t.feedback!.helpful })}>Change my answer</button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-[15px] font-bold">Was this answer helpful?</p>
+                  <p className="mt-0.5 text-sm text-muted">One tap helps us improve our replies.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button variant="secondary" size="sm" icon={<ThumbsUp className="size-4" />} loading={rate.isPending && rate.variables?.helpful === true} onClick={() => rate.mutate({ helpful: true })}>Yes, thank you</Button>
+                    <Button variant="secondary" size="sm" icon={<ThumbsDown className="size-4" />} onClick={() => setAskWhy(true)}>Not really</Button>
+                  </div>
+                  {askWhy && (
+                    <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); rate.mutate({ helpful: false, ...(comment.trim() ? { comment } : {}) }); }}>
+                      <textarea className={inputCls} rows={3} maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="What was missing? (optional)" aria-label="What was missing" />
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setAskWhy(false)}>Cancel</Button>
+                        <Button type="submit" size="sm" loading={rate.isPending}>Send feedback</Button>
+                      </div>
+                    </form>
+                  )}
+                </>
+              )}
+            </Card>
+          )}
 
           {closed ? (
             <p className="rounded-lg bg-paper px-4 py-3 text-sm text-muted">This ticket is closed. <Link to="/tickets/new" className="font-medium text-brand-700 underline">Raise a new ticket</Link> if you need more help.</p>

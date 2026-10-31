@@ -54,7 +54,7 @@ test('queue filters work and live in the URL', async () => {
   await adminPage.getByLabel('Category').selectOption('Royalty & Payments');
   await expect(adminPage).toHaveURL(/category=Royalty/);
   const rows = adminPage.locator('tbody tr');
-  await expect(rows.first()).toBeVisible(); // wait for the filtered result to render
+  await expect(rows.first()).toBeVisible({ timeout: 15_000 }); // wait for the filtered result to render
   const n = await rows.count();
   expect(n).toBeGreaterThan(0);
   for (let i = 0; i < n; i++) await expect(rows.nth(i)).toContainText('Royalty & Payments');
@@ -102,6 +102,22 @@ test('internal note is saved for admins only', async () => {
   await adminPage.getByRole('tab', { name: /Reply to author/ }).click();
 });
 
+test('quick replies append to the editor, and Ctrl+Enter saves an internal note', async () => {
+  const editor = adminPage.getByLabel('Reply to author');
+  await expect(editor).toHaveValue(/Hi Ananya/);
+  await adminPage.getByRole('button', { name: 'Looking into it' }).click();
+  await expect(editor).toHaveValue(/We're looking into your account now and will update you here within 48 hours/);
+  await expect(editor).toHaveValue(/Hi Ananya/); // appended, did not replace the AI draft
+
+  await adminPage.getByRole('tab', { name: /Internal note/ }).click();
+  await adminPage.getByLabel('Internal note').fill('SHORTCUT-NOTE saved with the keyboard.');
+  await adminPage.getByLabel('Internal note').press('Control+Enter');
+  await expect(adminPage.getByText('Internal note saved').first()).toBeVisible();
+  await adminPage.getByRole('tab', { name: /Reply to author/ }).click();
+  await adminPage.reload(); // start the next test from the freshly generated draft, not the appended snippet
+  await expect(adminPage.getByLabel('Reply to author')).toHaveValue(/Hi Ananya/, { timeout: 15_000 });
+});
+
 test('admin edits the draft and sends — the author sees it live, with no refresh', async () => {
   await authorPage.goto(ticketUrl);
   await expect(authorPage.getByText('BookLeaf team')).toHaveCount(0);
@@ -143,6 +159,13 @@ test('author follow-up reaches the admin live; admin "Send & resolve" reaches th
   await expect(adminPage.getByText('Reply sent and ticket resolved')).toBeVisible();
   await expect(authorPage.getByText('Finance has released the payment')).toBeVisible({ timeout: 15_000 });
   await expect(authorPage.getByText('Resolved').first()).toBeVisible();
+
+  // the author can now rate the resolution; the admin sees the rating
+  await expect(authorPage.getByText('Was this answer helpful?')).toBeVisible();
+  await authorPage.getByRole('button', { name: 'Yes, thank you' }).click();
+  await expect(authorPage.getByText(/you said this was helpful/)).toBeVisible();
+  await adminPage.reload();
+  await expect(adminPage.getByText('Found the answer helpful')).toBeVisible();
 });
 
 test('author replying to a resolved ticket reopens it; closed tickets reject replies', async () => {

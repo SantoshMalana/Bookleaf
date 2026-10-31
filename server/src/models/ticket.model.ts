@@ -40,6 +40,12 @@ export interface IDraft {
   generatedAt: Date;
 }
 
+export interface IFeedback {
+  helpful: boolean;
+  comment: string | null;
+  at: Date;
+}
+
 export interface ITicket {
   _id: Types.ObjectId;
   /** Sequential number, rendered to humans as BL-<number>. */
@@ -59,6 +65,8 @@ export interface ITicket {
   priorityReason: string | null;
   triage: ITriage;
   draft: IDraft | null;
+  /** The author's "was this helpful?" rating, only possible once resolved; cleared if the ticket is reopened. */
+  feedback: IFeedback | null;
   assignedTo: Types.ObjectId | null;
   /** true while Open / In Progress. Stored so the queue sort is a plain index scan. */
   isActive: boolean;
@@ -102,6 +110,11 @@ const draftSchema = new Schema<IDraft>(
   { _id: false },
 );
 
+const feedbackSchema = new Schema<IFeedback>(
+  { helpful: { type: Boolean, required: true }, comment: { type: String, default: null }, at: { type: Date, required: true } },
+  { _id: false },
+);
+
 const ticketSchema = new Schema<ITicket>(
   {
     number: { type: Number, required: true, unique: true },
@@ -119,6 +132,7 @@ const ticketSchema = new Schema<ITicket>(
     priorityReason: { type: String, default: null },
     triage: { type: triageSchema, default: () => ({ status: 'pending' }) },
     draft: { type: draftSchema, default: null },
+    feedback: { type: feedbackSchema, default: null },
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     isActive: { type: Boolean, default: true },
     awaitingResponseSince: { type: Date, default: null },

@@ -18,6 +18,7 @@ import { Message, Ticket, type IDraft, type ITicket } from '../models/index.js';
 import { runStructured } from './ai-client.js';
 import { loadTicketContext } from './context-loader.js';
 import { buildDraftContext } from './context.js';
+import { checkGrounding } from './grounding.js';
 import { AiUnavailableError } from './providers/index.js';
 import { draftOutputSchema, draftTool } from './schemas.js';
 import { templateDraft } from './templates.js';
@@ -68,10 +69,13 @@ async function generate(ticketId: string, basis: string): Promise<IDraft> {
       request: { system: built.system, user: built.user, tool: draftTool, maxTokens: 700, temperature: 0.3 },
       schema: draftOutputSchema,
     });
+    // Deterministic fact-check of what the model wrote against what it was given; surfaced to the reviewer.
+    const { warnings } = checkGrounding(r.data.reply, built.meta.groundingSource ?? '');
+    if (warnings.length) logger.warn({ ticketId, warnings }, 'draft failed grounding check');
     draft = {
       body: r.data.reply,
       source: 'ai',
-      verifyBeforeSending: r.data.verify_before_sending,
+      verifyBeforeSending: [...warnings.map((w) => `Auto-check: ${w}`), ...r.data.verify_before_sending],
       needsEscalation: r.data.needs_escalation,
       escalationTeam: r.data.escalation_team,
       model: r.model,

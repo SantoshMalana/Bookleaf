@@ -9,11 +9,15 @@
 import type { FilterQuery } from 'mongoose';
 import type { AuthContext } from '../../types/express.js';
 import { Errors } from '../../lib/errors.js';
+import { PRIORITY_RANK } from '../../config/constants.js';
+import { applyPriorityPolicy } from '../../domain/priority-policy.js';
 import { computeSlaDueAt } from '../../domain/sla.js';
 import { scheduleTriage } from '../../ai/triage.service.js';
 import { hub } from '../../realtime/hub.js';
 import { Book, Message, Ticket, nextSequence, type IMessage, type ITicket } from '../../models/index.js';
-import type { CreateTicketInput, ListTicketsQuery } from './ticket.schemas.js';
+
+type ITicketDoc = InstanceType<typeof Ticket>;
+import type { CreateTicketInput, FeedbackInput, ListTicketsQuery } from './ticket.schemas.js';
 import { logEvent } from './activity.js';
 import { toAdminTicket, toAuthorTicket, type PopulatedTicket } from './ticket.dto.js';
 
@@ -27,7 +31,10 @@ export const populatedQuery = <T>(q: T): T => (q as any).populate(POPULATE);
 
 const BASE_NUMBER = 1000;
 
-export async function createTicket(auth: AuthContext, input: CreateTicketInput) {
+/** A double-click, a retry after a flaky connection, or a back-button resubmit within this window is the same ticket. */
+const DUPLICATE_WINDOW_MS = 2 * 60_000;
+
+export async function createTicket(auth: AuthContext, input: CreateTicketInput): Promise<{ ticket: ITicketDoc; duplicate: boolean }> {
   if (!auth.authorId) throw Errors.forbidden('Only authors can raise support tickets');
 
   let bookId = null;
@@ -37,6 +44,15 @@ export async function createTicket(auth: AuthContext, input: CreateTicketInput) 
     if (!book) throw Errors.notFound('Book');
     bookId = book._id;
   }
+
+  const recent = await Ticket.findOne({
+    author: auth.authorId,
+    book: bookId,
+    subject: input.subject,
+    description: input.description,
+    createdAt: { $gte: new Date(Date.now() - DUPLICATE_WINDOW_MS) },
+  });
+  if (recent) return { ticket: recent, duplicate: true };
 
   const now = new Date();
   const number = BASE_NUMBER + (await nextSequence('ticket'));
@@ -57,7 +73,7 @@ export async function createTicket(auth: AuthContext, input: CreateTicketInput) 
   await logEvent(ticket._id, 'Ticket created by the author. AI triage queued.');
   hub.publish({ type: 'ticket.created', ticketId: String(ticket._id), ticketNumber: number, authorId: auth.authorId, authorVisible: true });
   scheduleTriage(String(ticket._id)); // async: never blocks or fails ticket creation
-  return ticket;
+  return { ticket, duplicate: false };
 }
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -153,13 +169,45 @@ export async function addAuthorMessage(auth: AuthContext, ticketId: string, body
     ticket.status = 'Open';
     ticket.isActive = true;
     ticket.resolvedAt = null;
+    ticket.feedback = null; // a rating belongs to one resolution; reopening starts a new one
   }
   ticket.awaitingResponseSince = now;
+
+  // Triage ran on the first message only. If the author escalates later ("this is fraud, I'll go to the police"),
+  // the deterministic floors must still fire — even over an admin's manual priority, because a human set that
+  // before the threat existed. Cheap (regex, no AI call); the SLA clock is recomputed for the new priority.
+  const policy = applyPriorityPolicy({ category: ticket.category ?? 'General Inquiry', aiPriority: ticket.priority, text: body, royaltyOverdue: false });
+  const escalated = policy.priority !== ticket.priority;
+  const previous = ticket.priority;
+  if (escalated) {
+    ticket.priority = policy.priority;
+    ticket.priorityRank = PRIORITY_RANK[policy.priority];
+    ticket.priorityReason = `Follow-up message escalated the ticket: ${policy.floors.join('; ')}.`;
+  }
+
   ticket.slaDueAt = computeSlaDueAt(ticket);
   ticket.lastActivityAt = now;
   await ticket.save();
 
+  if (escalated) {
+    await logEvent(ticket._id, `Priority raised ${previous} → ${policy.priority} automatically: the author's follow-up contains ${policy.floors.join('; ')}.`);
+    hub.publish({ type: 'ticket.updated', ticketId: String(ticket._id), ticketNumber: ticket.number, authorId: String(ticket.author), authorVisible: false });
+  }
   if (reopened) await logEvent(ticket._id, 'Ticket reopened automatically by the author\'s follow-up (Resolved → Open).');
   hub.publish({ type: 'ticket.message', ticketId: String(ticket._id), ticketNumber: ticket.number, authorId: String(ticket.author), authorVisible: true });
+  return getTicket(auth, ticketId);
+}
+
+/** "Was this helpful?" — only on the author's own ticket, and only once there is a resolution to rate. */
+export async function submitFeedback(auth: AuthContext, ticketId: string, input: FeedbackInput) {
+  if (auth.role !== 'author') throw Errors.forbidden('Only the author can rate a resolution');
+  const ticket = await Ticket.findOne({ _id: ticketId, author: auth.authorId });
+  if (!ticket) throw Errors.notFound('Ticket');
+  if (ticket.isActive) throw Errors.conflict('NOT_RESOLVED', 'You can rate the answer once the ticket has been resolved.');
+
+  ticket.feedback = { helpful: input.helpful, comment: input.comment?.trim() || null, at: new Date() };
+  await ticket.save();
+  await logEvent(ticket._id, `Author rated the resolution: ${input.helpful ? 'helpful' : 'not helpful'}${input.comment ? ` — "${input.comment.slice(0, 120)}"` : ''}.`);
+  hub.publish({ type: 'ticket.updated', ticketId: String(ticket._id), ticketNumber: ticket.number, authorId: String(ticket.author), authorVisible: false });
   return getTicket(auth, ticketId);
 }

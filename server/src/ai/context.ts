@@ -14,6 +14,7 @@
 import { LIMITS, PAYOUT_THRESHOLD_INR, PLATFORMS, PRODUCTION_STAGES, type Category } from '../config/constants.js';
 import { CATEGORY_GUIDANCE, CATEGORY_POLICY, CORE_POLICY, TONE_GUIDE } from './knowledge.js';
 import { DRAFT_SYSTEM, TRIAGE_SYSTEM } from './prompts.js';
+import { redactPii } from './redact.js';
 import { formatINR, getPayoutInfo, nextPayoutDate } from '../domain/royalty.js';
 import { getProductionInfo } from '../domain/production.js';
 import { toISODate } from '../lib/clock.js';
@@ -40,7 +41,7 @@ export interface ContextInput {
 export interface BuiltPrompt {
   system: string;
   user: string;
-  meta: { approxTokens: number; sections: string[] };
+  meta: { approxTokens: number; sections: string[]; /** Policy + facts only (no prompt examples, no author text): what a reply may legitimately cite. */ groundingSource?: string };
 }
 
 /** ~4 characters per token is accurate enough for budgeting and tests. */
@@ -52,7 +53,9 @@ const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 const pendingTotal = (books: IBook[]) => books.reduce((s, b) => s + b.royaltyPending, 0);
 
 /** Strip our own XML-ish delimiters from author text so it cannot "close" the data block. */
-const sanitize = (s: string) => s.replace(/<\/?(ticket|author_message|context|facts)[^>]*>/gi, '');
+const stripDelimiters = (s: string) => s.replace(/<\/?(ticket|author_message|context|facts)[^>]*>/gi, '');
+/** Everything the author typed passes through here on its way to the model: no delimiter tricks, no contact/financial identifiers. */
+const sanitize = (s: string) => stripDelimiters(redactPii(s));
 
 function bookIdentity(b: IBook): string {
   const pub = toISODate(b.publicationDate);
@@ -105,7 +108,13 @@ function factsFor(category: Category, input: ContextInput): string[] {
       if (b) {
         const p = getPayoutInfo(b, total, now);
         out.push(`PAYOUT_STATE: ${p.summary}`);
-        if (p.nextPayoutDate) out.push(`NEXT_PAYOUT_DATE: ${p.nextPayoutDate} (regular quarterly cycle)`);
+        if (p.state === 'overdue') {
+          // Deterministic instruction instead of hoping the model infers it: pointing an author whose payout is
+          // already late at "the next regular payout" would read as another delay, so the date is withheld on purpose.
+          out.push('REQUIRED_ACTION: the payout is overdue and that is BookLeaf\'s fault. Say plainly "this is on us", escalate to the finance team and promise resolution within 48 hours. Do NOT tell the author to wait for a future payout date.');
+        } else if (p.nextPayoutDate) {
+          out.push(`NEXT_PAYOUT_DATE: ${p.nextPayoutDate} (regular quarterly cycle)`);
+        }
       } else if (total > 0) {
         out.push(`NEXT_PAYOUT_DATE: ${toISODate(nextPayoutDate(now))} (regular quarterly cycle)`);
       }
@@ -168,9 +177,10 @@ export function buildDraftContext(input: ContextInput & { category: Category }):
     .slice(-LIMITS.aiThreadMessages)
     .map((m) => `[${m.senderRole === 'admin' ? 'BookLeaf team' : 'Author'}] ${sanitize(clip(oneLine(m.body), LIMITS.aiMessageChars))}`);
 
+  const facts = factsFor(category, input);
   const user = [
     '<facts>',
-    ...factsFor(category, input),
+    ...facts,
     '</facts>',
     thread.length ? `\nTHREAD (latest ${thread.length}, oldest first — reply to the newest author message):\n${thread.join('\n')}` : '',
     `\nORIGINAL TICKET`,
@@ -187,6 +197,7 @@ export function buildDraftContext(input: ContextInput & { category: Category }):
     user,
     meta: {
       approxTokens: estimateTokens(system + user),
+      groundingSource: [CORE_POLICY, CATEGORY_POLICY[category], TONE_GUIDE, CATEGORY_GUIDANCE[category], ...facts].join('\n'),
       sections: ['voice-rules', 'core-policy', `policy:${category}`, 'tone', `guidance:${category}`, 'facts', thread.length ? `thread(${thread.length})` : 'no-thread'],
     },
   };
