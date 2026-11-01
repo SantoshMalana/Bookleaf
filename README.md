@@ -1,13 +1,13 @@
 # BookLeaf — Author Support & Communication Portal
 
-[![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml)
+[![CI](https://github.com/SantoshMalana/Bookleaf/actions/workflows/ci.yml/badge.svg)](https://github.com/SantoshMalana/Bookleaf/actions/workflows/ci.yml)
 
 Authors see their books and royalties and raise support queries. The BookLeaf ops team works a prioritised ticket queue where **AI classifies each ticket, sets its priority and drafts a reply from the BookLeaf knowledge base**. Every AI output can be overridden or edited before an author sees it.
 
 | | |
 |---|---|
-| **Live app** | `<LIVE_URL>` |
-| **API docs (Swagger UI)** | `<LIVE_URL>/api/docs` (raw spec: `/api/openapi.json`) |
+| **Live app** | `https://bookleaf-o6b3.onrender.com` |
+| **API docs (Swagger UI)** | `https://bookleaf-o6b3.onrender.com/api/docs` (raw spec: `/api/openapi.json`) |
 | **Write-up** | [WRITEUP.md](./WRITEUP.md) |
 | **Design decisions (and trade-offs)** | [DECISIONS.md](./DECISIONS.md) |
 
@@ -65,7 +65,7 @@ All configuration is in environment variables, validated at boot with Zod (the p
 
 One web service serves the API, the built React app and the docs, so there is a single origin (cookies and SSE just work, no CORS).
 
-**Render (what this repo is configured for):** create a MongoDB Atlas free cluster and copy its connection string → on Render choose *New → Blueprint* and point it at this repo (`render.yaml`) → set `MONGODB_URI` and your LLM key in the dashboard → deploy. `JWT_SECRET` is generated automatically; `AUTO_SEED` seeds the dataset on first boot. A `Dockerfile` is included for any container host. Free instances sleep when idle, so the first request after a pause takes ~30–60 s.
+**Render (what this repo is configured for):** create a MongoDB Atlas free cluster and copy its connection string → on Render choose *New → Blueprint* and point it at this repo (`render.yaml`) → set `MONGODB_URI` and your LLM key in the dashboard → deploy. `JWT_SECRET` is generated automatically; `AUTO_SEED` seeds the dataset on first boot. A `Dockerfile` is included for any container host. The live deployment above is the Render one. `vercel.json` is an optional mirror: it serves the built front end on Vercel and forwards `/api/*` to the Render service, so the app (including sign-in) works from a Vercel address too; Vercel itself cannot host the API because it needs a long-running process for live updates and background AI triage. Free instances sleep when idle, so the first request after a pause takes ~30–60 s.
 
 ---
 

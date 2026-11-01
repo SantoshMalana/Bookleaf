@@ -316,3 +316,15 @@ describe('PII redaction before text reaches the provider', () => {
     expect(input.description).toBe(description); // the original is only masked in the copy sent to the model
   });
 });
+
+describe('template fallback never sends an overdue author to a future payout date', () => {
+  it('the overdue template owns the delay, escalates to finance with 48 hours, and cites no next-payout date', async () => {
+    const input = await ctxFor('AUTH003', 'BK005', 'No royalty', 'I have not been paid.');
+    const t = templateDraft('Royalty & Payments', input);
+    expect(t.reply).toMatch(/this is on us/i);
+    expect(t.reply).toMatch(/48 hours/);
+    expect(t.reply).not.toMatch(/next (regular )?payout|2026-11-14|14 November 2026/i);
+    expect(t.needsEscalation).toBe(true);
+    expect(t.escalationTeam).toBe('finance');
+  });
+});

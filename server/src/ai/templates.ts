@@ -41,7 +41,7 @@ export function templateDraft(category: Category, input: ContextInput): Template
       const bank = 'Please also confirm that the bank account linked in your dashboard is correct.';
       if (b && p?.state === 'overdue') {
         return t(
-          `I'm sorry about the wait on your royalty for ${title}. Our records show ${formatINR(b.royaltyPending)} pending and no payout made so far, and your first payout was due by ${p.overdueSince}. This is on us. We are escalating it to our finance team now and will confirm your payment date within 48 hours.\n\nRoyalties are calculated quarterly and paid within 45 days of the quarter ending; the next regular payout date is ${p.nextPayoutDate}. ${bank}\n\nNext step: we will write back within 48 hours with a confirmed payout date.`,
+          `I'm sorry about the wait on your royalty for ${title}. Our records show ${formatINR(b.royaltyPending)} pending and no payout made so far, and your first payout was due by ${p.overdueSince}. This is on us. We are escalating it to our finance team now and will confirm your payment date within 48 hours.\n\n${bank}\n\nNext step: we will write back within 48 hours with a confirmed payout date.`,
           { needsEscalation: true, escalationTeam: 'finance', verify: ['Template reply (AI unavailable) — personalise before sending.', 'Confirm whether the author has bank details linked.'] },
         );
       }

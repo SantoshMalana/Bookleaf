@@ -44,7 +44,7 @@ export default function Dashboard() {
               label="Royalty pending"
               value={inr(d.royalty?.totalPending ?? 0)}
               tone={(d.royalty?.totalPending ?? 0) > 0 ? 'warn' : 'default'}
-              hint={d.royalty?.nextPayoutDate ? `Next payout window: ${day(d.royalty.nextPayoutDate)}` : 'Nothing pending'}
+              hint={d.royalty?.overdueBooks ? 'Overdue — we\'re on it once you raise a query' : d.royalty?.nextPayoutDate ? `Next payout window: ${day(d.royalty.nextPayoutDate)}` : 'Nothing pending'}
             />
             <StatTile icon={<Ticket />} label="Open tickets" value={d.tickets?.active ?? 0} hint={`${d.tickets?.total ?? 0} raised in total`} />
           </>
