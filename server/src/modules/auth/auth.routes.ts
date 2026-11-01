@@ -56,4 +56,18 @@ authRouter.get(
   }),
 );
 
+/**
+ * "Is anyone signed in?" for the app's first paint. Same check as /me, but answers 200 with `user: null` instead of
+ * 401 when there is no valid session — a signed-out visitor is a normal state, not an error, so the browser console
+ * stays clean. /me keeps its strict 401 for API clients.
+ */
+authRouter.get(
+  '/session',
+  (req, res, next) => authenticate(req, res, (err?: unknown) => (err ? res.json({ data: { user: null } }) : next())),
+  asyncHandler(async (req, res) => {
+    const user = await User.findById(req.auth!.userId).lean();
+    res.json({ data: { user: user ? toUserDto(user) : null } });
+  }),
+);
+
 authRouter.get('/demo-accounts', asyncHandler(async (_req, res) => res.json({ data: await demoAccounts() })));

@@ -140,6 +140,7 @@ export const openApiSpec = {
     },
     '/auth/logout': { post: { tags: ['Auth'], summary: 'Clear the session cookie', security: [], responses: { '204': resp('Signed out') } } },
     '/auth/me': { get: { tags: ['Auth'], summary: 'Current user', security: AUTHED, responses: { '200': resp('OK', data(ref('User'))), ...common } } },
+    '/auth/session': { get: { tags: ['Auth'], summary: 'Current user or null — never 401 (used by the app on first load so a signed-out visitor is not logged as an error)', security: [], responses: { '200': resp('OK — data.user is the user, or null when signed out') } } },
     '/auth/demo-accounts': { get: { tags: ['Auth'], summary: 'Seeded demo logins (only when DEMO_MODE=true; 404 otherwise)', security: [], responses: { '200': resp('OK'), '404': err('NotFound') } } },
     '/me': { get: { tags: ['Author'], summary: 'Profile and dashboard summary (royalty totals, next payout date, ticket counts)', security: AUTHED, responses: { '200': resp('OK'), ...common } } },
     '/books': {

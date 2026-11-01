@@ -19,7 +19,9 @@ import { Message, Ticket } from '../models/index.js';
 import { runStructured } from './ai-client.js';
 import { loadTicketContext } from './context-loader.js';
 import { buildTriageContext } from './context.js';
+import { getOrCreateDraft } from './draft.service.js';
 import { fallbackClassify } from './fallback-classifier.js';
+import { env } from '../config/env.js';
 import { AiUnavailableError } from './providers/index.js';
 import { triageOutputSchema, triageTool } from './schemas.js';
 
@@ -103,6 +105,20 @@ export async function triageTicket(ticketId: string): Promise<void> {
       : `AI unavailable (${failure}) — rule-based triage applied: ${category} · ${policy.priority}. Please review.${policy.floors.length ? ` Policy: ${policy.floors.join('; ')}.` : ''}`,
   );
   hub.publish({ type: 'ticket.triaged', ticketId, ticketNumber: fresh.number, authorId: String(fresh.author), authorVisible: false });
+
+  // Drafts are normally generated lazily (only when an admin opens the ticket). For urgent tickets the admin will open
+  // them first and soon, and a live draft takes several seconds, so generate it now. Costs ≈ $0.0003 per urgent ticket;
+  // skipped when triage fell back (AI is down or the budget is spent, so a draft call would fail the same way).
+  if (prewarmEnabled() && source === 'ai' && fresh.isActive && PRIORITY_RANK[fresh.priority] >= PRIORITY_RANK.High) {
+    getOrCreateDraft(ticketId).catch((err) => logger.warn({ err, ticketId }, 'draft pre-warm failed (admin can still generate it)'));
+  }
+}
+
+let prewarmOverride: boolean | null = null;
+const prewarmEnabled = () => prewarmOverride ?? (env.AI_PREWARM_DRAFTS && !env.isTest);
+/** Tests only: pre-warming is off under test by default so draft-call counts stay deterministic. */
+export function __setPrewarmForTests(on: boolean | null): void {
+  prewarmOverride = on;
 }
 
 /**

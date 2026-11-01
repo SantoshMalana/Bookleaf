@@ -1,0 +1,16 @@
+name: Keep demo warm
+
+# Render's free plan sleeps after ~15 idle minutes and the next visitor waits 30-60 s for a cold start.
+# During the review window, ping the health endpoint so the first click is fast. Delete this file afterwards.
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # GitHub may delay scheduled runs by a few minutes; that is fine here
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping health endpoint
+        run: curl -fsS --retry 3 --retry-delay 10 --max-time 90 https://bookleaf-o6b3.onrender.com/api/v1/health

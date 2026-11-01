@@ -27,6 +27,14 @@ Useful author accounts for the edge cases called out in the brief:
 - `kavita.deshmukh@email.com` — pending ₹850, below the ₹1,000 minimum: **rollover, not overdue**. Also has a book in typesetting.
 - `sneha.kulkarni@email.com` — a book **in production** (cover design): `—` for unset fields, ₹0 royalty, stage tracker.
 
+### Reviewer quick tour (3 minutes)
+
+1. Open the live app in two windows. In one, sign in as **Ananya Reddy** (author) with the one-click button; in the other (a private window), as **Riya Verma** (admin).
+2. As Ananya, look at *My Books*: the royalty card explains that her first payout is overdue. Click **Submit a Query** and ask anything about her royalty, even something vague.
+3. As Riya, watch the ticket arrive in the queue within seconds, already labelled *Royalty & Payments · High* by the AI (chip **AI**). Open it: the drafted reply owns the delay, quotes her real figures (e.g. ₹2,546 pending, first payout due 14 Nov 2024), escalates to finance with a 48-hour timeline, and is flagged *Needs escalation — finance*.
+4. Edit if you like and click **Send reply**. Ananya's window shows the reply without a refresh. Add an *Internal note* and confirm Ananya never sees it.
+5. Optional: *AI usage* shows tokens, latency, cost and today's spend cap; `/api/docs` has the API.
+
 The database also contains 8 demo tickets (based on the sample queries in the brief) so the admin queue is not empty on first look.
 
 ---
@@ -193,7 +201,7 @@ Interactive docs: **`/api/docs`** (Swagger UI; try requests after logging in via
 
 | Method & path | Role | Description |
 |---|---|---|
-| `POST /auth/login` · `POST /auth/logout` · `GET /auth/me` | public / any | Session management |
+| `POST /auth/login` · `POST /auth/logout` · `GET /auth/me` · `GET /auth/session` | public / any | Session management (`/session` answers 200 with `user: null` when signed out, for the app's first load) |
 | `GET /me` | any | Profile + dashboard numbers (royalty totals, next payout date, ticket counts) |
 | `GET /books` · `GET /books/:id` | author (own) / admin (all, `?authorId=`) | Books with royalty earned/paid/pending, payout state, production stage |
 | `GET /tickets` · `POST /tickets` | author | List own tickets (`status`, `page`, `limit`); create (`bookId` optional = General/Account) |
@@ -221,6 +229,7 @@ Lists return `{ items, meta: { page, limit, total, totalPages } }`; single resou
 - **Admin queue**: stat tiles double as filters; default sort puts the most urgent first (priority, then oldest). Each row has a priority colour bar, SLA pill (due-in / **overdue by**), and source chips showing whether category/priority came from **AI**, **Rules** (fallback), **Manual** override or a **Preset**. Filters live in the URL so a view can be shared.
 - **SLA** (clock runs only while a ticket is waiting for a BookLeaf reply): Critical 4 h, High 24 h, Medium 48 h, Low 72 h.
 - **Escalation never goes stale.** The deterministic priority floors run again on every author follow-up (regex, no AI call). If a ticket that started as a bio question later says "this is fraud, I'll go to the police", it becomes Critical with a 4 h SLA, the change is logged on the timeline, and it wins even over an admin's earlier manual priority (a person set that before the threat existed). Triage also reads follow-ups that arrived while the model was thinking.
+- **Urgent drafts are ready before you open them.** For tickets triaged High or Critical by the AI, the reply draft is generated straight after triage (`AI_PREWARM_DRAFTS`, ≈ $0.0003 per urgent ticket), so the admin does not wait several seconds on the tickets they open first. Everything else stays lazy and cached.
 - **Double-submits are harmless.** An identical ticket (same book, subject and text) from the same author within two minutes returns the existing ticket with `200` instead of creating a duplicate.
 - **Ticket workspace**: conversation + event timeline, tabs for *Reply to author* / *Internal note*, AI draft pre-filled in an editable box with verify-before-send warnings and an escalation flag, *Send reply* or *Send & resolve* (**Ctrl/Cmd+Enter** sends), one-click **quick replies** for repetitive cases (they work with the AI off), the author's books/royalty alongside, and the author's helpful/not-helpful rating once resolved. The system records whether each sent reply was an unedited draft, an edited draft, or written manually.
 - **Author**: dashboard, books (live vs in-production sections, royalty bar, payout explanations in plain language, stage progress for unpublished books, `—` for unset fields), submit query with inline validation and a UI-only attachment picker, tickets with a "new reply" cue, live updates with a toast, and a one-tap "Was this answer helpful?" on resolved tickets.

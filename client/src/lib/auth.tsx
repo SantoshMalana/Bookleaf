@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear();
     });
     api
-      .get<{ data: { user: User } }>('/auth/me')
+      .get<{ data: { user: User | null } }>('/auth/session') // 200 + null when signed out: no red 401 on first load
       .then((r) => setUser(r.data.user))
       .catch((e) => {
         if (!(e instanceof ApiError && e.status === 401)) console.error(e);

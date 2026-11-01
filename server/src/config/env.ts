@@ -47,6 +47,8 @@ const schema = z.object({
   AI_PRICE_OUTPUT_PER_MTOK: optionalNumber,
   /** Hard daily ceiling on AI spend in USD (UTC day). When reached, triage/drafts fall back to rules/templates until tomorrow. 0 disables the cap. */
   AI_DAILY_BUDGET_USD: z.coerce.number().min(0).default(5),
+  /** Generate the reply draft right after triage for High/Critical tickets, so the admin does not wait when opening them. */
+  AI_PREWARM_DRAFTS: bool(true),
   AI_BREAKER_THRESHOLD: z.coerce.number().int().positive().default(4),
   AI_BREAKER_COOLDOWN_MS: z.coerce.number().int().positive().default(45000),
 

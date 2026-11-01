@@ -7,6 +7,7 @@ import { MockProvider } from '../src/ai/providers/mock.js';
 import { setProvider } from '../src/ai/providers/index.js';
 import { hub, type TicketEvent } from '../src/realtime/hub.js';
 import { __setBudgetForTests } from '../src/ai/budget.js';
+import { __setPrewarmForTests } from '../src/ai/triage.service.js';
 import { AiCall, Book, Message, Ticket } from '../src/models/index.js';
 import { asAdmin, asAuthor, bearer, connectAndSeed, disconnect, waitForTriage } from './helpers.js';
 
@@ -558,6 +559,53 @@ describe('daily AI budget', () => {
     } finally {
       __setBudgetForTests(null);
       await AiCall.deleteOne({ _id: spend._id });
+    }
+  });
+});
+
+
+describe('session check for the app\'s first load', () => {
+  it('answers 200 with the user, or 200 with null when signed out or the token is bad (never a 401)', async () => {
+    const author = await asAuthor(app, 'ananya.reddy@email.com');
+    const ok = await request(app).get(api('/auth/session')).set(bearer(author));
+    expect(ok.status).toBe(200);
+    expect(ok.body.data.user).toMatchObject({ email: 'ananya.reddy@email.com', role: 'author' });
+    const anon = await request(app).get(api('/auth/session'));
+    expect(anon.status).toBe(200);
+    expect(anon.body.data.user).toBeNull();
+    const junk = await request(app).get(api('/auth/session')).set('Authorization', 'Bearer not.a.token');
+    expect(junk.status).toBe(200);
+    expect(junk.body.data.user).toBeNull();
+    expect((await request(app).get(api('/auth/me'))).status).toBe(401); // the strict endpoint is unchanged
+  });
+});
+
+describe('draft pre-warming for urgent tickets', () => {
+  it('generates the draft right after triage for High/Critical tickets only', async () => {
+    __setPrewarmForTests(true);
+    try {
+      const author = await asAuthor(app, 'ananya.reddy@email.com');
+      const book = await Book.findOne({ bookCode: 'BK005' }).lean();
+      const urgent = (await createTicket(author, { bookId: String(book!._id) })).body.data.id as string;
+      const calm = (await createTicket(author, { subject: 'Update my bio', description: 'Can I update my author bio on the store page please? (prewarm)' })).body.data.id as string;
+      expect((await waitForTriage(urgent)).priority).toBe('High');
+      expect((await waitForTriage(calm)).priority).toBe('Low');
+
+      let draft = null;
+      for (let i = 0; i < 80 && !draft; i++) {
+        draft = (await Ticket.findById(urgent).lean())!.draft;
+        if (!draft) await new Promise((r) => setTimeout(r, 25));
+      }
+      expect(draft).toMatchObject({ source: 'ai' });
+      await new Promise((r) => setTimeout(r, 100));
+      expect((await Ticket.findById(calm).lean())!.draft).toBeNull(); // low priority stays lazy
+
+      // opening the urgent ticket now costs nothing: the draft is served from cache
+      const admin = await asAdmin(app);
+      const opened = await request(app).post(api(`/admin/tickets/${urgent}/draft`)).set(bearer(admin)).send({});
+      expect(opened.body.data.cached).toBe(true);
+    } finally {
+      __setPrewarmForTests(null);
     }
   });
 });

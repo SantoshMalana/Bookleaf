@@ -54,10 +54,10 @@ test('queue filters work and live in the URL', async () => {
   await adminPage.getByLabel('Category').selectOption('Royalty & Payments');
   await expect(adminPage).toHaveURL(/category=Royalty/);
   const rows = adminPage.locator('tbody tr');
-  await expect(rows.first()).toBeVisible({ timeout: 15_000 }); // wait for the filtered result to render
-  const n = await rows.count();
-  expect(n).toBeGreaterThan(0);
-  for (let i = 0; i < n; i++) await expect(rows.nth(i)).toContainText('Royalty & Payments');
+  await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+  // Retrying assertion: the previous (unfiltered) page can stay on screen for a moment while the filtered one loads.
+  await expect(rows.filter({ hasNotText: 'Royalty & Payments' })).toHaveCount(0, { timeout: 15_000 });
+  expect(await rows.count()).toBeGreaterThan(0);
 
   await adminPage.getByLabel('Search tickets').fill('no-such-ticket-xyz');
   await expect(adminPage.getByText('No tickets match these filters')).toBeVisible();
