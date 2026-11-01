@@ -8,6 +8,7 @@ import { MockProvider } from '../src/ai/providers/mock.js';
 import { AiUnavailableError, setProvider } from '../src/ai/providers/index.js';
 import { triageOutputSchema, triageTool } from '../src/ai/schemas.js';
 import { templateDraft } from '../src/ai/templates.js';
+import { normaliseSpacing } from '../src/ai/draft.service.js';
 import { redactPii } from '../src/ai/redact.js';
 import { checkGrounding, extractAmounts, extractDates, extractTimelines } from '../src/ai/grounding.js';
 import { OpenAiProvider } from '../src/ai/providers/openai.js';
@@ -326,5 +327,11 @@ describe('template fallback never sends an overdue author to a future payout dat
     expect(t.reply).not.toMatch(/next (regular )?payout|2026-11-14|14 November 2026/i);
     expect(t.needsEscalation).toBe(true);
     expect(t.escalationTeam).toBe('finance');
+  });
+});
+
+describe('draft text clean-up', () => {
+  it('turns the typographic spaces and hyphens reasoning models emit into plain ones', () => {
+    expect(normaliseSpacing('due on 14\u202FNovember\u00A02024, within 48\u202Fhours, re\u2011sync\u200B')).toBe('due on 14 November 2024, within 48 hours, re-sync');
   });
 });

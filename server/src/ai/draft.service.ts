@@ -23,6 +23,9 @@ import { AiUnavailableError } from './providers/index.js';
 import { draftOutputSchema, draftTool } from './schemas.js';
 import { templateDraft } from './templates.js';
 
+export const normaliseSpacing = (text: string): string =>
+  text.replace(/[\u00A0\u2007\u2009\u200A\u202F]/g, ' ').replace(/[\u2010\u2011]/g, '-').replace(/[\u200B\u2060\uFEFF]/g, '');
+
 const inflight = new Map<string, Promise<IDraft>>();
 const lastRegenerate = new Map<string, number>();
 const REGENERATE_COOLDOWN_MS = 8000;
@@ -69,11 +72,14 @@ async function generate(ticketId: string, basis: string): Promise<IDraft> {
       request: { system: built.system, user: built.user, tool: draftTool, maxTokens: 700, temperature: 0.3 },
       schema: draftOutputSchema,
     });
+    // gpt-oss likes typographic spaces (U+202F in "48 hours", U+00A0, non-breaking hyphens). They render as cramped or
+    // odd gaps in the editor and in authors' mail clients, so normalise to plain ASCII spacing before anyone sees it.
+    const reply = normaliseSpacing(r.data.reply);
     // Deterministic fact-check of what the model wrote against what it was given; surfaced to the reviewer.
-    const { warnings } = checkGrounding(r.data.reply, built.meta.groundingSource ?? '');
+    const { warnings } = checkGrounding(reply, built.meta.groundingSource ?? '');
     if (warnings.length) logger.warn({ ticketId, warnings }, 'draft failed grounding check');
     draft = {
-      body: r.data.reply,
+      body: reply,
       source: 'ai',
       verifyBeforeSending: [...warnings.map((w) => `Auto-check: ${w}`), ...r.data.verify_before_sending],
       needsEscalation: r.data.needs_escalation,
