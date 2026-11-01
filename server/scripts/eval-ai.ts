@@ -34,6 +34,21 @@ if (!useFallback && !provider) {
   process.exit(1);
 }
 
+/** Free-tier providers rate-limit bursts; an eval should measure the model, not the quota. Retries 429s with backoff. */
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const e = err as { status?: number; message?: string };
+      const limited = e?.status === 429 || /rate limit|429/i.test(e?.message ?? '');
+      if (!limited || attempt >= 4) throw err;
+      const hinted = Number(/try again in ([\d.]+)s/i.exec(e?.message ?? '')?.[1]);
+      await new Promise((r) => setTimeout(r, Number.isFinite(hinted) && hinted > 0 ? hinted * 1000 + 250 : 2000 * 2 ** attempt));
+    }
+  }
+}
+
 const pad = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s.padEnd(n));
 let catOk = 0, prioExact = 0, prioNear = 0, inTok = 0, outTok = 0, failures = 0;
 
@@ -55,7 +70,7 @@ for (const c of cases) {
         thread: [],
         now: new Date(),
       });
-      const r = await provider!.callStructured({ system: ctx.system, user: ctx.user, tool: triageTool, maxTokens: 200, temperature: 0 });
+      const r = await withRetry(() => provider!.callStructured({ system: ctx.system, user: ctx.user, tool: triageTool, maxTokens: 200, temperature: 0 }));
       inTok += r.inputTokens;
       outTok += r.outputTokens;
       const out = triageOutputSchema.parse(r.data);

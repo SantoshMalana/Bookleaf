@@ -174,3 +174,20 @@ describe('rule-based fallback classifier (used when the AI is down)', () => {
     expect(rank[royalty.priority]).toBeGreaterThan(rank[bio.priority]);
   });
 });
+
+describe('priority floors added after the live held-out eval', () => {
+  const p = (category: Parameters<typeof applyPriorityPolicy>[0]['category'], text: string, aiPriority: 'Low' | 'Medium' = 'Medium') =>
+    applyPriorityPolicy({ category, aiPriority, text, royaltyOverdue: false }).priority;
+
+  it('physically damaged or defective copies are at least High; a plain reprint request is not', () => {
+    expect(p('Printing & Quality', 'The courier box was crushed and two books have bent corners and a torn cover.')).toBe('High');
+    expect(p('Printing & Quality', 'Several pages are missing and some are printed upside down.')).toBe('High');
+    expect(p('Printing & Quality', 'I would like to order a reprint of 20 author copies for a book fair next month.')).toBe('Medium');
+  });
+
+  it('a misspelt author name or a missing ISBN counts as a metadata error (High)', () => {
+    expect(p('ISBN & Metadata Issues', "On Amazon my name appears as 'Rahul Verna' instead of 'Rahul Varma'.")).toBe('High');
+    expect(p('ISBN & Metadata Issues', 'The ISBN field is empty on my dashboard.')).toBe('High');
+    expect(p('ISBN & Metadata Issues', 'How do I update my book description?', 'Low')).toBe('Low');
+  });
+});

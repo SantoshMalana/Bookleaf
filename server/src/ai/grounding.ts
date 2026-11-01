@@ -87,6 +87,12 @@ export function checkGrounding(reply: string, source: string): GroundingResult {
     if (!knownTimelines.has(t)) warnings.push(`The reply promises "${t}", which is not a turnaround listed in company policy.`);
   }
 
+  // Open-ended promises the policy does not make ("we'll pay immediately", "guaranteed today").
+  for (const m of reply.matchAll(/\b(immediately|right away|today|tomorrow|guarantee[ds]?|instantly)\b/gi)) {
+    const word = m[1]!.toLowerCase();
+    if (!new RegExp(`\\b${word}\\b`, 'i').test(source)) warnings.push(`The reply promises "${word}", which company policy does not commit to — use the policy timeline instead.`);
+  }
+
   // The one business rule worth enforcing even when every individual fact is correct: an overdue payout must
   // not be answered with "wait for the next regular payout" (that reads as a second delay).
   if (/REQUIRED_ACTION:[^\n]*overdue/i.test(source) && /\b(next|upcoming|regular)\b[^.]{0,40}\bpayout\b|\bpayout\b[^.]{0,40}\b(next|upcoming)\b/i.test(reply)) {

@@ -24,7 +24,9 @@ export interface PolicyResult {
 
 const LEGAL = /\b(legal action|lawyer|advocate|legal notice|consumer (court|forum)|sue\b|suing|police|fraud|scam|cheat(ed|ing)?|defam|cyber ?crime)\b/i;
 const PRIVACY = /\b(data (leak|breach)|personal (data|information) (was )?(leaked|exposed)|privacy breach)\b/i;
-const ISBN_ERROR = /\b(wrong|different|incorrect|duplicate|mismatch(ed)?|mixed up|swapped|another book|not (the )?same|doesn'?t match|does not match)\b/i;
+const ISBN_ERROR = /\b(wrong|different|incorrect|duplicate|mismatch(ed)?|mixed up|swapped|another book|not (the )?same|doesn'?t match|does not match|misspel(l)?t|spelled wrong|instead of|no isbn|isbn (field )?(is )?(empty|missing|blank))\b/i;
+/** A physical defect in printed copies — the priority rubric calls this High, and the live held-out eval showed the model often says Medium. */
+const PRINT_DEFECT = /\b(damaged|torn|crushed|bent|missing pages?|pages? (are |were )?missing|misprint(ed|s)?|blurry|blurred|misalign(ed|ment)?|upside[- ]down|binding|falling (apart|out)|defect(ive)?|smudg(e|ed))\b/i;
 const NON_PAYMENT = /\b(not (yet )?(received|paid|got)|haven'?t (received|been paid|got)|never (received|got|paid)|still (waiting|not)|no royalt(y|ies)|unpaid|overdue|pending since|missing payment)\b/i;
 const MONTHS_WAIT = /\b(\d+|several|many|few)\s*(months?|years?)\b/i;
 
@@ -46,6 +48,7 @@ export function applyPriorityPolicy(input: PolicyInput): PolicyResult {
   if (input.category === 'ISBN & Metadata Issues' && ISBN_ERROR.test(input.text)) {
     raise('High', 'reported ISBN/metadata error (Knowledge Base: always high priority)');
   }
+  if (input.category === 'Printing & Quality' && PRINT_DEFECT.test(input.text)) raise('High', 'defective or damaged printed copies');
   if (input.category === 'Royalty & Payments') {
     if (NON_PAYMENT.test(input.text) && MONTHS_WAIT.test(input.text)) raise('High', 'long-running non-payment reported');
     if (input.royaltyOverdue && NON_PAYMENT.test(input.text)) raise('High', 'royalty payout is overdue in our records');

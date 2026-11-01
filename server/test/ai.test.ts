@@ -335,3 +335,20 @@ describe('draft text clean-up', () => {
     expect(normaliseSpacing('due on 14\u202FNovember\u00A02024, within 48\u202Fhours, re\u2011sync\u200B')).toBe('due on 14 November 2024, within 48 hours, re-sync');
   });
 });
+
+describe('grounding check: open-ended promises', () => {
+  it('flags "immediately"/"guarantee" when policy does not make that promise, but not when the policy does', () => {
+    const royaltyPolicy = 'Royalties are paid within 45 days of quarter end. If a payment is genuinely overdue, escalate with a 48-hour resolution timeline.';
+    const w = checkGrounding('We will process the payment immediately and guarantee it lands.', royaltyPolicy).warnings;
+    expect(w.some((x) => x.includes('"immediately"'))).toBe(true);
+    expect(w.some((x) => x.includes('"guarantee"'))).toBe(true);
+    const isbnPolicy = 'A reported ISBN error is escalated to the production team immediately; resolution timeline 48 hours.';
+    expect(checkGrounding('We have escalated this to production immediately.', isbnPolicy).warnings).toEqual([]);
+  });
+
+  it('the draft prompt tells the model how to answer a bare acknowledgement', async () => {
+    const { DRAFT_SYSTEM } = await import('../src/ai/prompts.js');
+    expect(DRAFT_SYSTEM).toMatch(/just an acknowledgement/);
+    expect(DRAFT_SYSTEM).toMatch(/repeat nothing already sent/);
+  });
+});

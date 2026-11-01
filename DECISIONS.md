@@ -84,6 +84,9 @@ A double-click or a retry on a flaky connection should not create two tickets fo
 ### The overfitting I caught in my own fallback
 I wrote the rule-based fallback while looking at the 22 eval cases and it scored 21/22. On 24 fresh cases it scored 17/24 category and 8/24 exact priority. I then fixed its misses — so I now quote the 17/24 as the honest held-out figure and treat the post-fix 23/24 as contaminated. The same caution applies to the live model: `heldout.json` was written after the prompts were final.
 
+### What the live evals changed
+The held-out triage run (live, 24 cases) got category right on every case it answered but priority exactly right only 16/24, and the misses clustered: damaged copies and a misspelt author name came back Medium when the rubric says High. I didn't tune the prompt against the set — I added two narrow code floors, consistent with "business-critical priority is code, not a prompt", and I quote the pre-fix numbers. The draft run (13 cases) was clean on grounding and injection, and every overdue case escalated to finance. Its two "failures" were my length check being too strict, which I said rather than quietly changing. The real draft weakness came from using the live app: a bare "ok" from the author got a reply that repeated itself and said "immediately" — now handled in the prompt and flagged by the grounding check.
+
 ## What I'd do next (in order)
 1. Run the eval in CI against the live model and gate on category accuracy.
 2. Redis + a durable job queue (scale-out safety).
